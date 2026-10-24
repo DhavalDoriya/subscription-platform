@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/schibsted-grotesk';
+
+@source '../../storage/framework/views/*.php';
+
+/* Design tokens. Light, cool-grey canvas with a deep ink and one cobalt accent used only for actions and focus. */
+@theme {
+    --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+
+    --color-canvas: #eef1f6;
+    --color-surface: #ffffff;
+    --color-ink: #101828;
+    --color-muted: #5b6577;
+    --color-line: #d5dbe6;
+    --color-accent: #3b5bdb;
+    --color-accent-strong: #2f49b3;
+    --color-danger: #b42318;
+    --color-success: #067647;
+}
+
+@layer base {
+    body {
+        background: var(--color-canvas);
+        color: var(--color-ink);
+        font-family: var(--font-sans);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+    }
+}
