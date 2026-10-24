@@ -24,11 +24,54 @@ return [
     'auth' => [
         'invalid_credentials' => 'Invalid email or password.',
         'too_many_attempts' => 'Too many login attempts. Try again later.',
+        'account_blocked' => 'This account has been blocked. Contact support.',
         'session_invalid' => 'Session is no longer valid. Please sign in again.',
         'invalid_verification_link' => 'Invalid verification link.',
         'email_verified' => 'Email verified.',
         'verification_sent' => 'Verification email sent.',
         'reset_link_sent' => 'If that email is registered, a reset link is on its way.',
         'password_updated' => 'Password updated. Please sign in.',
+    ],
+
+    'settings' => [
+        'unknown_key' => 'This setting does not exist.',
+    ],
+
+    'providers' => [
+        'already_registered' => 'You already have a provider account.',
+        'slug_invalid' => 'Use 3 to 40 lowercase letters, numbers or single hyphens, not starting or ending with a hyphen.',
+        'slug_reserved' => 'This address is reserved. Choose another.',
+        'slug_taken' => 'This address is already taken.',
+        'invalid_transition' => 'A provider cannot move from :from to :to.',
+        'not_found' => 'You do not have a provider account yet.',
+        'tax_unavailable' => 'Stripe Tax is not enabled on this platform.',
+        'tenant_not_found' => 'No provider lives at this address.',
+    ],
+
+    'admin' => [
+        'cannot_remove_self' => 'You cannot remove your own account.',
+        'cannot_remove_super_admin' => 'Super admins cannot be removed here.',
+        'cannot_impersonate' => 'This account cannot be impersonated.',
+        'not_impersonating' => 'This session is not an impersonation.',
+    ],
+
+    'stripe' => [
+        'not_configured' => 'Stripe is not configured yet.',
+        'invalid_signature' => 'Invalid webhook signature.',
+        'provider_not_approved' => 'Your account must be approved before you can connect Stripe.',
+        'not_connected' => 'Connect Stripe and finish onboarding first.',
+        'event_not_replayable' => 'Only failed or unhandled events can be replayed.',
+        'replay_failed' => 'The event failed again: :error',
+    ],
+
+    'plans' => [
+        'plan_limit_reached' => 'You have reached the maximum number of plans.',
+        'stripe_not_enabled' => 'Finish connecting Stripe before publishing plans or adding prices to a live plan.',
+        'provider_not_approved' => 'Your account must be approved and active to publish plans.',
+        'plan_needs_price' => 'A live plan needs at least one active price.',
+        'plan_already_active' => 'This plan is already live.',
+        'plan_archived' => 'This plan is archived.',
+        'plan_in_use' => 'Only drafts can be deleted. Archive this plan instead.',
+        'price_archived' => 'This price is archived.',
     ],
 ];

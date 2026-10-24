@@ -1,7 +1,10 @@
 <?php
 
 use App\Exceptions\ApiExceptionRenderer;
+use App\Http\Middleware\EnsureNotBlocked;
+use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\SetProviderTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,8 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SetLocale::class);
+        $middleware->appendToGroup('api', EnsureNotBlocked::class);
 
         $middleware->alias([
+            'tenant' => ResolveTenant::class,
+            'provider.tenant' => SetProviderTenant::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,

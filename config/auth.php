@@ -119,12 +119,16 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
-
     /*
     |--------------------------------------------------------------------------
     | Refresh tokens
     |--------------------------------------------------------------------------
     */
+
+    // Requests per minute per IP on register, login, refresh and password reset. Raise it only for e2e runs (.env.e2e).
+    'rate_limits' => [
+        'auth' => (int) env('AUTH_RATE_LIMIT', 20),
+    ],
 
     'refresh' => [
         'ttl_days' => env('REFRESH_TOKEN_TTL_DAYS', 30),

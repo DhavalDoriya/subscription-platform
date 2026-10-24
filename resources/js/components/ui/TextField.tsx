@@ -17,14 +17,14 @@ export function TextField({ label, error, hint, id, ...rest }: Props) {
                 id={inputId}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={describedBy}
-                className={`h-11 rounded-md border bg-surface px-3 text-base outline-none transition-colors focus:border-accent ${error ? 'border-danger' : 'border-line'}`}
+                className={`h-11 rounded-md border bg-card px-3 text-base outline-none transition-colors focus:border-primary ${error ? 'border-destructive' : 'border-border'}`}
             />
             {error ? (
-                <p id={`${inputId}-error`} className="text-sm text-danger">
+                <p id={`${inputId}-error`} className="text-sm text-destructive">
                     {error}
                 </p>
             ) : hint ? (
-                <p id={`${inputId}-hint`} className="text-sm text-muted">
+                <p id={`${inputId}-hint`} className="text-sm text-muted-foreground">
                     {hint}
                 </p>
             ) : null}

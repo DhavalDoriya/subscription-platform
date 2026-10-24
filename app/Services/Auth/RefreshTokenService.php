@@ -57,7 +57,7 @@ class RefreshTokenService
 
         $user = $token->user;
 
-        if ($token->isExpired() || ! $user) {
+        if ($token->isExpired() || ! $user || $user->isBlocked()) {
             throw $this->invalid();
         }
 

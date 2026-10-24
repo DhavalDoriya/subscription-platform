@@ -23,8 +23,22 @@ function renderAt(path: string) {
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/account" element={<RequireAuth><h1>Account</h1></RequireAuth>} />
-                <Route path="/admin" element={<RequireAuth roles={['admin']}><h1>Admin</h1></RequireAuth>} />
+                <Route
+                    path="/account"
+                    element={
+                        <RequireAuth>
+                            <h1>Account</h1>
+                        </RequireAuth>
+                    }
+                />
+                <Route
+                    path="/admin"
+                    element={
+                        <RequireAuth roles={['admin']}>
+                            <h1>Admin</h1>
+                        </RequireAuth>
+                    }
+                />
                 <Route path="/" element={<h1>Home</h1>} />
             </Routes>
         </MemoryRouter>,
@@ -44,7 +58,9 @@ describe('login page', () => {
     });
 
     it('shows the server message for wrong credentials', async () => {
-        server.use(http.post(url('/auth/login'), () => HttpResponse.json({ message: 'Invalid email or password.', code: 'invalid_credentials' }, { status: 401 })));
+        server.use(
+            http.post(url('/auth/login'), () => HttpResponse.json({ message: 'Invalid email or password.', code: 'invalid_credentials' }, { status: 401 })),
+        );
         renderAt('/login');
 
         await userEvent.type(screen.getByLabelText('Email'), 'jane@example.com');
@@ -57,7 +73,11 @@ describe('login page', () => {
 
 describe('register page', () => {
     it('shows field errors from the API next to the inputs', async () => {
-        server.use(http.post(url('/auth/register'), () => HttpResponse.json({ message: 'invalid', errors: { email: ['The email has already been taken.'] } }, { status: 422 })));
+        server.use(
+            http.post(url('/auth/register'), () =>
+                HttpResponse.json({ message: 'invalid', errors: { email: ['The email has already been taken.'] } }, { status: 422 }),
+            ),
+        );
         renderAt('/register');
 
         await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
@@ -79,5 +99,42 @@ describe('route guards', () => {
         useAuthStore.getState().setSession(user as never, 't');
         renderAt('/admin');
         expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument();
+    });
+});
+
+describe('post-login landing', () => {
+    it('sends admins to the admin panel and customers to their account', async () => {
+        const adminUser = { ...user, roles: ['admin'] };
+        server.use(
+            http.post(url('/auth/login'), () => HttpResponse.json({ data: { access_token: 't', token_type: 'bearer', expires_in: 900, user: adminUser } })),
+        );
+        const { unmount } = render(
+            <MemoryRouter initialEntries={['/login']}>
+                <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/admin" element={<h1>Admin home</h1>} />
+                    <Route path="/account" element={<h1>Account</h1>} />
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        await userEvent.type(screen.getByLabelText('Email'), 'a@example.com');
+        await userEvent.type(screen.getByLabelText('Password'), 'Password123!');
+        await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+        expect(await screen.findByRole('heading', { name: 'Admin home' })).toBeInTheDocument();
+        unmount();
+    });
+});
+
+describe('homeFor', () => {
+    it('picks the landing page by role, admin first', async () => {
+        const { homeFor } = await import('@/lib/auth');
+        const make = (roles: string[]) => ({ ...user, roles }) as never;
+
+        expect(homeFor(make(['customer']))).toBe('/account');
+        expect(homeFor(make(['customer', 'provider_owner']))).toBe('/dashboard');
+        expect(homeFor(make(['admin', 'provider_owner']))).toBe('/admin');
+        expect(homeFor(make(['super_admin']))).toBe('/admin');
     });
 });

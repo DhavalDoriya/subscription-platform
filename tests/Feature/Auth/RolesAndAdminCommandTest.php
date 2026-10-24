@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\PermissionRegistrar;
 
 it('FR-A4 seeds the four roles', function () {
     expect(Role::pluck('name')->sort()->values()->all())->toBe(['admin', 'customer', 'provider_owner', 'super_admin']);
@@ -45,4 +45,15 @@ it('refuses to create an admin for an existing email', function () {
     User::factory()->create(['email' => 'root@example.com']);
 
     $this->artisan('app:create-admin', ['email' => 'root@example.com', '--name' => 'Root', '--password' => 'Password123!'])->assertFailed();
+});
+
+it('creates no half-made admin when the roles have not been seeded', function () {
+    Role::query()->delete();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $this->artisan('app:create-admin', ['email' => 'root@example.com', '--name' => 'Root', '--password' => 'Password123!'])
+        ->expectsOutputToContain('RoleSeeder')
+        ->assertFailed();
+
+    expect(User::withTrashed()->where('email', 'root@example.com')->exists())->toBeFalse();
 });

@@ -5,6 +5,7 @@ export interface AuthUser {
     name: string;
     email: string;
     email_verified_at: string | null;
+    avatar_url: string | null;
     roles: Role[];
 }
 
@@ -14,4 +15,14 @@ export interface AuthPayload {
     token_type: 'bearer';
     expires_in: number;
     user: AuthUser;
+}
+
+export interface Impersonator {
+    id: string;
+    name: string;
+}
+
+/** Body of POST /admin/users/{id}/impersonate. */
+export interface ImpersonationPayload extends AuthPayload {
+    impersonator: Impersonator;
 }

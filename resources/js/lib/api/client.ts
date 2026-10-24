@@ -30,12 +30,15 @@ export function setRefreshHandler(handler: RefreshHandler | null): void {
     refreshHandler = handler;
 }
 
+/** Calls that carry or issue credentials: a 401 here is the answer, not an expired token. Other /auth/* calls (me, profile, avatar) are retried. */
+const CREDENTIAL_ENDPOINTS = /^\/auth\/(login|register|refresh|logout|logout-all|password\/(forgot|reset))(\?|$)/;
+
 type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
 http.interceptors.response.use(undefined, async (error: unknown) => {
     if (error instanceof AxiosError && error.response?.status === 401 && refreshHandler && error.config) {
         const config = error.config as RetryableConfig;
-        const isAuthCall = (config.url ?? '').startsWith('/auth/') && !(config.url ?? '').startsWith('/auth/me');
+        const isAuthCall = CREDENTIAL_ENDPOINTS.test(config.url ?? '');
 
         if (!config._retried && !isAuthCall) {
             config._retried = true;
@@ -52,9 +55,7 @@ http.interceptors.response.use(undefined, async (error: unknown) => {
 function toApiError(error: unknown): ApiError {
     if (error instanceof ApiError) return error;
     if (error instanceof AxiosError) {
-        return error.response
-            ? ApiError.fromBody(error.response.status, error.response.data as Partial<ErrorResponse> | undefined)
-            : ApiError.network();
+        return error.response ? ApiError.fromBody(error.response.status, error.response.data as Partial<ErrorResponse> | undefined) : ApiError.network();
     }
     return new ApiError('Something went wrong.', 0);
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert } from '@/components/ui/Alert';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/TextField';
 import { api } from '@/lib/api';
 import { useFormSubmit } from '@/lib/useFormSubmit';
@@ -22,14 +22,21 @@ export function ForgotPasswordPage() {
             ) : (
                 <form onSubmit={form.submit} className="flex flex-col gap-5" noValidate>
                     {form.formError && <Alert>{form.formError}</Alert>}
-                    <TextField label="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={form.fieldError('email')} />
-                    <Button type="submit" loading={form.pending}>
+                    <TextField
+                        label="Email"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        error={form.fieldError('email')}
+                    />
+                    <Button size="lg" type="submit" loading={form.pending}>
                         Send reset link
                     </Button>
                 </form>
             )}
             <p className="mt-6 text-sm">
-                <Link to="/login" className="text-accent hover:underline">
+                <Link to="/login" className="text-primary hover:underline">
                     Back to sign in
                 </Link>
             </p>

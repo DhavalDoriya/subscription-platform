@@ -2,6 +2,7 @@
 
 use App\Models\RefreshToken;
 use App\Models\User;
+use Illuminate\Testing\TestResponse;
 
 function loggedIn(): array
 {
@@ -11,7 +12,7 @@ function loggedIn(): array
     return [$user, $response->json('data.access_token'), refreshCookie($response)];
 }
 
-function refreshWith(string $token): Illuminate\Testing\TestResponse
+function refreshWith(string $token): TestResponse
 {
     return test()->withCredentials()->withUnencryptedCookie('refresh_token', $token)->postJson('/api/v1/auth/refresh');
 }

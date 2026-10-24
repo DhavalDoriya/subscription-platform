@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Providers live on <slug>.<base_domain>; reserved subdomains and the bare domain are the main app.
+    'base_domain' => env('APP_BASE_DOMAIN', 'platform.test'),
+
     'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
 
     /*

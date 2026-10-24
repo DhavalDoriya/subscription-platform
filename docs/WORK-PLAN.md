@@ -10,6 +10,18 @@ Companion to [PRD.md](PRD.md) (what to build) and [../CLAUDE.md](../CLAUDE.md) (
 - Every phase ends with the full suite green (`pest`, `npm test`, `npm run typecheck`, `npm run build`) and, for UI phases, a real-browser Playwright run (login, every page, one write, logout, no console errors or failed requests).
 - Sizes are rough effort for one developer: **S** under half a day, **M** about 1 day, **L** 2 to 3 days.
 
+## Carried over (not done yet)
+
+Open items from earlier phases. Revisit them at the next phase boundary; none block Phase 2 work.
+
+- **T0.1** Docker stack up, Pest and Vitest inside containers. Needs a running Docker daemon (missing in the dev sandbox).
+- **T0.2** Wildcard domain `*.platform.test` resolving to nginx. Needs hosts or dnsmasq entries. Phase 2 tenant resolution is covered by tests that fake the Host header; a real-browser check on a subdomain waits for this.
+- **T0.3** CI runs Pest on Postgres 16 as well, but this has not been run yet (no Postgres locally). Confirm on the first CI run or `make test`.
+- **ESLint** Deferred: `typescript-eslint` does not support TypeScript 7 yet. Pin TypeScript 6 or wait.
+- **Stripe retry suppression** (`auto_advance=false`) is desk research only; verify with test clocks in T6.4.
+- **Real Stripe test-mode walkthrough** (Phase 3 exit criterion): needs `sk_test_` key and the two webhook secrets saved in admin Settings, then connect a provider, publish a plan and replay a webhook. Everything so far runs against `FakeStripeGateway`, so check the real SDK v22 calls (`accounts->create`, `accountLinks->create`, `products/prices` with `stripe_account`) and pin an API version.
+- Nothing is committed yet. Ask before committing.
+
 ## Overview
 
 | Phase | Name | Depends on | Size | Output |
@@ -42,11 +54,11 @@ Status: mostly done. Remaining tasks are marked open.
 - [x] `CLAUDE.md`, `AGENTS.md`, README, PRD.
 - [ ] **T0.1** Bring the Docker stack up and run Pest and Vitest inside containers (M).
 - [ ] **T0.2** Wildcard local domain: `platform.test` and `*.platform.test` resolve to nginx; a test slug serves the SPA (S).
-- [ ] **T0.3** Run the test suite against Postgres (not only sqlite) in CI and locally (S).
-- [ ] **T0.4** Initialize shadcn/ui and add base components (button, input, table, dialog, toast, form) (S).
-- [ ] **T0.5** Playwright config plus a smoke test that loads the shell (S).
-- [ ] **T0.6** Spike: can Stripe automatic retries be disabled on connected accounts? Write the finding into the PRD. If not, define the fallback (engine pays invoices itself) (S).
-- [ ] **T0.7** Lint and format: Pint for PHP, ESLint + Prettier for web, wired into CI (S).
+- [ ] **T0.3** Run the test suite against Postgres (not only sqlite) in CI and locally (S). CI now runs Pest on both; **not yet verified**: no Postgres or Docker daemon in the dev sandbox, first CI run or `make test` will confirm.
+- [x] **T0.4** Initialize shadcn/ui and add base components (button, input, table, dialog, toast, form) (S). Done with the `base-nova` style; tokens mapped to our palette in `resources/css/app.css`. Note: the CLI generated `import ... from "cn"` (an unrelated npm package) and overwrites edited components on `add --overwrite`; `cn` lives in `resources/js/lib/utils.ts`, and `button.tsx` has our `loading` prop.
+- [x] **T0.5** Playwright config plus a smoke test that loads the shell (S). Specs: `tests/e2e/auth.spec.ts`, `profile.spec.ts`; run with the app served on :8000.
+- [x] **T0.6** Spike: can Stripe automatic retries be disabled on connected accounts? Finding in PRD section 9 (Phase 0): not controllable per connected account; fallback is `auto_advance=false` per invoice plus engine-paid retries; verify with test clocks in T6.4 (S).
+- [x] **T0.7** Lint and format: Pint for PHP, Prettier for web, wired into CI (S). ESLint is **deferred**: `typescript-eslint` does not support TypeScript 7 yet (peer range below 6.1); add it when it does, or pin TypeScript 6.
 
 **Exit criteria:** `make up` works from a clean clone; both test suites and CI are green on Postgres; spike result recorded.
 
@@ -74,10 +86,8 @@ Tasks:
 - [x] **T1.7** `php artisan app:create-admin` command for the first admin (S).
 - [x] **T1.8** Rate limiting and lockout (S).
 - [x] **T1.9** Frontend: auth store (token in memory), Axios client with single-flight refresh on 401, login/register/reset pages, route guards by role (L).
-- [ ] **T1.10** Profile page: name, email, password, avatar (FR-A8) (S).
+- [x] **T1.10** Profile page: name, email, password, avatar (FR-A8) (S).
 - [x] **T1.11** Define and pin the API response envelope in a test (`data`, `meta`, error shape) (S).
-
-Remaining: T1.10 (profile page).
 
 **Exit criteria:** a user can register, verify email, log in, stay signed in across token expiry, and log out everywhere; an admin can be seeded; guards proven by tests; Playwright login/logout passes.
 
@@ -96,22 +106,22 @@ Tests first:
 - list endpoints return the pinned envelope with search, filter, sort and pagination
 
 Tasks:
-- [ ] **T2.1** `providers`, `provider_users`, `provider_customers` migrations and models; base `TenantOwned` trait with global scope (M).
-- [ ] **T2.2** Tenant resolver middleware from subdomain, with reserved-subdomain blocklist (M).
-- [ ] **T2.3** Provider registration endpoint, slug availability check, auto-approve setting (M).
-- [ ] **T2.4** Admin provider actions: approve, reject with reason, activate, deactivate, suspend, edit slug (M).
-- [ ] **T2.5** `settings` store: grouped keys, validation, caching, encrypted values; admin settings API (general, provider rules, currencies, security) (M).
-- [ ] **T2.6** Audit log wiring (activitylog) for admin and provider mutations; admin audit viewer API (S).
-- [ ] **T2.7** Admin shell UI: sidebar grouped by domain, generic data table, generic dialog, toast pattern, layout (L).
-- [ ] **T2.8** Admin dashboard (provider counts by status, customers, recent signups) (M).
-- [ ] **T2.9** Providers listing page and detail dialog with active/inactive control (M).
-- [ ] **T2.10** Customers listing page with block/unblock (FR-AD3) (M).
-- [ ] **T2.11** Admin user management for super admin (FR-AD9) (S).
-- [ ] **T2.12** Provider registration UI and provider dashboard shell with branding settings (M).
-- [ ] **T2.13** Impersonation with audit trail and exit banner (FR-A10) (M).
-- [ ] **T2.14** Tenant-isolation test helper reused by every later tenant table (S).
+- [x] **T2.1** `providers`, `provider_users`, `provider_customers` migrations and models; base `TenantOwned` trait with global scope (M).
+- [x] **T2.2** Tenant resolver middleware from subdomain, with reserved-subdomain blocklist (M).
+- [x] **T2.3** Provider registration endpoint, slug availability check, auto-approve setting (M).
+- [x] **T2.4** Admin provider actions: approve, reject with reason, activate, deactivate, suspend, edit slug (M).
+- [x] **T2.5** `settings` store: grouped keys, validation, caching, encrypted values; admin settings API (general, provider rules, currencies, security) (M).
+- [x] **T2.6** Audit log wiring (activitylog) for admin and provider mutations; admin audit viewer API (S).
+- [x] **T2.7** Admin shell UI: sidebar grouped by domain, generic data table, generic dialog, toast pattern, layout (L).
+- [x] **T2.8** Admin dashboard (provider counts by status, customers, recent signups) (M). API and UI done (real-browser checked).
+- [x] **T2.9** Providers listing page and detail dialog with active/inactive control (M). API and UI done: list with search/status filter/sort/paging, detail dialog, lifecycle actions, slug edit.
+- [x] **T2.10** Customers listing page with block/unblock (FR-AD3) (M). API done (`/admin/customers`, block/unblock; blocked users are refused at login, refresh and on live tokens); UI done.
+- [x] **T2.11** Admin user management for super admin (FR-AD9) (S). API and UI done (`/admin/admins`).
+- [x] **T2.12** Provider registration UI and provider dashboard shell with branding settings (M). Done: `/become-a-provider` (live address check, currencies from the admin list), provider dashboard shell (`/dashboard`, status banner, `/dashboard/settings` for contact, timezone, currency, brand colour, legal links), `PATCH /provider`, `GET /public/config`. The owner cannot change slug, status or Stripe fields. Logo and favicon upload wait for the media library (T4.4).
+- [x] **T2.13** Impersonation with audit trail and exit banner (FR-A10) (M). API done (`POST /admin/users/{id}/impersonate`, `POST /auth/impersonation/end`; token carries `imp`, no refresh, credential changes blocked); UI done: Impersonate in Customers, banner with Exit.
+- [x] **T2.14** Tenant-isolation test helper reused by every later tenant table (S).
 
-**Exit criteria:** a brand registers, is auto-approved, gets a slug; admin can list, filter and activate/deactivate providers and customers; isolation tests pass; Playwright sweep of admin pages passes.
+**Exit criteria:** a brand registers, is auto-approved, gets a slug; admin can list, filter and activate/deactivate providers and customers; isolation tests pass; Playwright sweep of admin pages passes. **Met** (Pest 170, Vitest 110, Playwright 5 specs).
 
 ---
 
@@ -127,19 +137,19 @@ Tests first (Stripe fake at the client boundary):
 - currency must be in the admin-enabled list
 
 Tasks:
-- [ ] **T3.1** `StripeClient` wrapper with idempotency keys and a fake for tests (M).
-- [ ] **T3.2** Admin Stripe settings (keys, webhook secrets, mode indicator), encrypted (S).
-- [ ] **T3.3** Connect Express onboarding: create account, onboarding link, dashboard link, status sync (M).
-- [ ] **T3.4** Webhook endpoint (platform and Connect), signature check, `webhook_events` table, idempotent dispatch to handlers (M).
-- [ ] **T3.5** `account.updated` handler and provider Stripe status banner data (S).
-- [ ] **T3.6** `plans`, `prices` migrations; CRUD API; sync Product/Price to the connected account (L).
-- [ ] **T3.7** Trial days, features list, sort order, visibility, archive behavior (S).
-- [ ] **T3.8** Currency chosen from admin-enabled list; plan limits and price bounds from admin settings (S).
-- [ ] **T3.9** Stripe Tax toggle (platform then provider) (S).
-- [ ] **T3.10** Provider UI: Stripe connect status, plans manager (M).
-- [ ] **T3.11** Admin UI: plans listing across providers with force-archive; webhook event monitor with replay (FR-AD5, FR-AD11) (M).
+- [x] **T3.1** `StripeClient` wrapper with idempotency keys and a fake for tests (M).
+- [x] **T3.2** Admin Stripe settings (keys, webhook secrets, mode indicator), encrypted (S).
+- [x] **T3.3** Connect Express onboarding: create account, onboarding link, dashboard link, status sync (M).
+- [x] **T3.4** Webhook endpoint (platform and Connect), signature check, `webhook_events` table, idempotent dispatch to handlers (M).
+- [x] **T3.5** `account.updated` handler and provider Stripe status banner data (S).
+- [x] **T3.6** `plans`, `prices` migrations; CRUD API; sync Product/Price to the connected account (L).
+- [x] **T3.7** Trial days, features list, sort order, visibility, archive behavior (S).
+- [x] **T3.8** Currency chosen from admin-enabled list; plan limits and price bounds from admin settings (S).
+- [x] **T3.9** Stripe Tax toggle (platform then provider) (S).
+- [x] **T3.10** Provider UI: Stripe connect status, plans manager (M).
+- [x] **T3.11** Admin UI: plans listing across providers with force-archive; webhook event monitor with replay (FR-AD5, FR-AD11) (M).
 
-**Exit criteria:** a provider completes Connect onboarding in Stripe test mode and creates a plan that exists on their connected account; replayed webhooks cause no duplicate effects.
+**Exit criteria:** a provider completes Connect onboarding in Stripe test mode and creates a plan that exists on their connected account; replayed webhooks cause no duplicate effects. **Met against the fake gateway** (idempotent webhooks, replay, plan sync, price replacement all tested); **not yet run against real Stripe test mode** (needs keys, see Carried over).
 
 ---
 
@@ -215,7 +225,7 @@ Tasks:
 - [ ] **T6.1** `payment_attempts` and `dunning_events` migrations and models (S).
 - [ ] **T6.2** Decline-code classifier (soft, hard, auth-required) with a table-driven test (M).
 - [ ] **T6.3** Retry scheduler: daily command plus per-invoice queued job, locks, idempotency keys (L).
-- [ ] **T6.4** Disable Stripe automatic retries on connected accounts (per Phase 0 spike result) (S).
+- [ ] **T6.4** Suppress Stripe automatic retries per invoice (`auto_advance=false` on `invoice.created` / `invoice.payment_failed`, per the Phase 0 spike) and verify with test clocks (S).
 - [ ] **T6.5** State machine: past_due to grace to canceled/paused; admin-configurable schedule, grace days, final action (M).
 - [ ] **T6.6** Dunning notifications wired to template keys (mail stub until Phase 7) (M).
 - [ ] **T6.7** "Fix payment" flow reachable from emails; immediate retry after card update (M).

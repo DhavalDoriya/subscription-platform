@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './authStore';
-import type { Role } from './types';
+import type { AuthUser, Role } from './types';
+
+/** Where a signed-in user belongs after signing in. */
+export const homeFor = (user: AuthUser): string =>
+    user.roles.some((role) => role === 'admin' || role === 'super_admin') ? '/admin' : user.roles.includes('provider_owner') ? '/dashboard' : '/account';
 
 /** Requires a signed-in user, and optionally one of `roles`. */
 export function RequireAuth({ roles, children }: { roles?: Role[]; children: ReactNode }) {
@@ -17,10 +21,10 @@ export function RequireAuth({ roles, children }: { roles?: Role[]; children: Rea
 
 /** For pages like login/register: signed-in users are sent on to the app. */
 export function GuestOnly({ children }: { children: ReactNode }) {
-    const { status } = useAuthStore();
+    const { status, user } = useAuthStore();
 
     if (status === 'unknown') return <p role="status">Loading…</p>;
-    if (status === 'authenticated') return <Navigate to="/account" replace />;
+    if (status === 'authenticated' && user) return <Navigate to={homeFor(user)} replace />;
 
     return <>{children}</>;
 }

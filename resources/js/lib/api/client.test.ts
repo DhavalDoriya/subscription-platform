@@ -1,12 +1,13 @@
 import { http as mock, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { api, ApiError, setAccessTokenGetter } from '.';
+import { api, ApiError, setAccessTokenGetter, setRefreshHandler } from '.';
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
     server.resetHandlers();
     setAccessTokenGetter(() => null);
+    setRefreshHandler(null);
 });
 afterAll(() => server.close());
 
@@ -62,9 +63,7 @@ describe('api client', () => {
 
     it('turns validation errors into ApiError with field errors', async () => {
         server.use(
-            mock.post(url('/providers'), () =>
-                HttpResponse.json({ message: 'The slug is taken.', errors: { slug: ['Already in use.'] } }, { status: 422 }),
-            ),
+            mock.post(url('/providers'), () => HttpResponse.json({ message: 'The slug is taken.', errors: { slug: ['Already in use.'] } }, { status: 422 })),
         );
 
         const error = await failure(api.post('/providers', {}));
@@ -91,5 +90,35 @@ describe('api client', () => {
     it('resolves delete without a body', async () => {
         server.use(mock.delete(url('/things/1'), () => new HttpResponse(null, { status: 204 })));
         await expect(api.delete('/things/1')).resolves.toBeUndefined();
+    });
+
+    it('FR-A8 refreshes and retries an expired token on profile endpoints under /auth', async () => {
+        let calls = 0;
+        server.use(
+            mock.patch(url('/auth/profile'), ({ request }) => {
+                calls++;
+                return request.headers.get('authorization') === 'Bearer fresh'
+                    ? HttpResponse.json({ data: { ok: true } })
+                    : HttpResponse.json({ message: 'Unauthenticated.' }, { status: 401 });
+            }),
+        );
+        let token = 'stale';
+        setAccessTokenGetter(() => token);
+        setRefreshHandler(async () => (token = 'fresh'));
+
+        await expect(api.patch('/auth/profile', {})).resolves.toEqual({ ok: true });
+        expect(calls).toBe(2);
+    });
+
+    it('does not try to refresh when the refresh call itself is rejected', async () => {
+        let refreshes = 0;
+        server.use(mock.post(url('/auth/refresh'), () => HttpResponse.json({ message: 'Unauthenticated.' }, { status: 401 })));
+        setRefreshHandler(async () => {
+            refreshes++;
+            return 'x';
+        });
+
+        await failure(api.post('/auth/refresh'));
+        expect(refreshes).toBe(0);
     });
 });

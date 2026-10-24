@@ -1,32 +1,110 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 @import '@fontsource-variable/schibsted-grotesk';
 
 @source '../../storage/framework/views/*.php';
 
-/* Design tokens. Light, cool-grey canvas with a deep ink and one cobalt accent used only for actions and focus. */
-@theme {
-    --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+@custom-variant dark (&:is(.dark *));
 
-    --color-canvas: #eef1f6;
-    --color-surface: #ffffff;
-    --color-ink: #101828;
-    --color-muted: #5b6577;
-    --color-line: #d5dbe6;
-    --color-accent: #3b5bdb;
-    --color-accent-strong: #2f49b3;
-    --color-danger: #b42318;
-    --color-success: #067647;
+/*
+ * Design tokens, in shadcn's semantic names so every shadcn component picks them up.
+ * Light, cool-grey canvas with a deep ink and one cobalt primary used only for actions and focus.
+ */
+:root {
+    --radius: 0.5rem;
+
+    --background: #eef1f6;
+    --foreground: #101828;
+    --card: #ffffff;
+    --card-foreground: #101828;
+    --popover: #ffffff;
+    --popover-foreground: #101828;
+    --primary: #3b5bdb;
+    --primary-foreground: #ffffff;
+    --secondary: #e4e8f0;
+    --secondary-foreground: #101828;
+    --muted: #e4e8f0;
+    --muted-foreground: #5b6577;
+    --accent: #e3e8fb;
+    --accent-foreground: #2f49b3;
+    --destructive: #b42318;
+    --success: #067647;
+    --border: #d5dbe6;
+    --input: #d5dbe6;
+    --ring: #3b5bdb;
+
+    --chart-1: #3b5bdb;
+    --chart-2: #067647;
+    --chart-3: #b54708;
+    --chart-4: #7a5af8;
+    --chart-5: #5b6577;
+
+    --sidebar: #101828;
+    --sidebar-foreground: #d5dbe6;
+    --sidebar-primary: #3b5bdb;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #1d2939;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1d2939;
+    --sidebar-ring: #3b5bdb;
+}
+
+@theme inline {
+    --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--font-sans);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-success: var(--success);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
 }
 
 @layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
     body {
-        background: var(--color-canvas);
-        color: var(--color-ink);
-        font-family: var(--font-sans);
+        @apply bg-background text-foreground font-sans;
     }
 
     :focus-visible {
-        outline: 2px solid var(--color-accent);
+        outline: 2px solid var(--ring);
         outline-offset: 2px;
     }
 }

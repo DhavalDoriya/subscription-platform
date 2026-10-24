@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 
 function validRegistration(array $overrides = []): array
 {
@@ -31,7 +32,7 @@ it('FR-A1 registers a customer, returns tokens and a refresh cookie', function (
         ->and(strtolower((string) $cookie->getSameSite()))->toBe('lax');
 
     $user = User::where('email', 'jane@example.com')->first();
-    expect(Illuminate\Support\Str::isUuid($user->id))->toBeTrue()
+    expect(Str::isUuid($user->id))->toBeTrue()
         ->and(Hash::check('Password123!', $user->password))->toBeTrue();
     Notification::assertSentTo($user, VerifyEmail::class);
 });
@@ -103,4 +104,14 @@ it('returns the current user from /auth/me and requires a token', function () {
     $token = loginAs($user)->json('data.access_token');
     $this->app['auth']->forgetGuards();
     $this->withToken($token)->getJson('/api/v1/auth/me')->assertOk()->assertJsonPath('data.email', $user->email);
+});
+
+it('FR-A5 throttles the auth endpoints per IP, with the limit coming from config', function () {
+    config(['auth.rate_limits.auth' => 3]);
+
+    foreach (range(1, 3) as $_) {
+        $this->postJson('/api/v1/auth/login', ['email' => 'nobody@example.com', 'password' => 'whatever'])->assertUnauthorized();
+    }
+
+    $this->postJson('/api/v1/auth/login', ['email' => 'nobody@example.com', 'password' => 'whatever'])->assertStatus(429);
 });

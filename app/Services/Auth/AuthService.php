@@ -39,6 +39,10 @@ class AuthService
 
         RateLimiter::clear($key);
 
+        if ($user->isBlocked()) {
+            throw new ApiException(__('api.auth.account_blocked'), 403, 'account_blocked');
+        }
+
         return $user;
     }
 

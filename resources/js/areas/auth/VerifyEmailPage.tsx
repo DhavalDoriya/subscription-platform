@@ -22,7 +22,7 @@ export function VerifyEmailPage() {
             {state === 'done' && <Alert tone="success">Email verified.</Alert>}
             {state === 'failed' && <Alert>This link is invalid or has expired. Sign in to request a new one.</Alert>}
             <p className="mt-6 text-sm">
-                <Link to="/account" className="text-accent hover:underline">
+                <Link to="/account" className="text-primary hover:underline">
                     Continue
                 </Link>
             </p>

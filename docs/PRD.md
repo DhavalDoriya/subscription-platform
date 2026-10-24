@@ -142,7 +142,7 @@ Priority: **P0** = MVP, **P1** = fast follow, **P2** = later.
 
 ### 4.2 Provider Onboarding
 - FR-P1 (P0) Registration form: company name, owner details, desired subdomain/slug (live availability check), business category, country, support email.
-- FR-P2 (P0) Provider status lifecycle: `pending → approved → active ↔ inactive/suspended`, plus `rejected`. Admin setting `provider.auto_approve` (**default: on** for now, can be switched to manual at any time).
+- FR-P2 (P0) Provider status lifecycle (`approved` = vetted but not yet live, e.g. Stripe onboarding open; `active` = fully live; storefront and checkout work in both, and both pause when moved to `inactive`/`suspended`): `pending → approved → active ↔ inactive/suspended`, plus `rejected`. Admin setting `provider.auto_approve` (**default: on** for now, can be switched to manual at any time).
 - FR-P9 (P0) **Deactivation pauses billing:** when a provider becomes inactive/suspended, active subscriptions are paused (Stripe `pause_collection`), the storefront shows unavailable, new checkouts are blocked; reactivation resumes collection. Customers are notified.
 - FR-P3 (P0) Slug rules: lowercase alphanumeric + hyphen, 3–40 chars, unique, reserved-word blacklist, immutable after approval (change via admin only).
 - FR-P4 (P0) Stripe Connect onboarding (Express accounts): provider must complete before accepting payments; show status (`not started / pending / restricted / enabled`).
@@ -199,7 +199,7 @@ Priority: **P0** = MVP, **P1** = fast follow, **P2** = later.
 - FR-PM8 (P1) Dispute handling: notify provider, flag subscription, track evidence deadline.
 
 ### 4.7 Retry & Dunning Engine
-- FR-R1 (P0) Stripe's automatic retry is **disabled**; platform engine owns schedule (decision confirmable in §10).
+- FR-R1 (P0) Stripe's automatic retry is **suppressed per invoice** (`auto_advance=false`, see Phase 0 spike in §9); platform engine owns the schedule.
 - FR-R2 (P0) Default schedule (admin-configurable, optionally overridable per provider within admin bounds): retry at +1, +3, +5, +7 days after first failure.
 - FR-R3 (P0) Decline classification:
   - **Soft** (insufficient funds, processing error, generic decline) → retry.
@@ -338,7 +338,7 @@ Every phase: write the listed acceptance tests first (red), implement (green), r
 ### Phase 0: Foundation  *(in progress)*
 Scope: repo skeleton, Docker stack (php-fpm, nginx wildcard, node/Vite, Postgres, Redis, Horizon, scheduler, Mailpit, MinIO, Stripe CLI), Laravel 13 + React/TS/Vite in `resources/js`, Pest + Vitest + Playwright, CI, UUID + soft-delete conventions (custom stubs, base models), project instructions (`CLAUDE.md`), custom Role/Permission/Activity models.
 Acceptance tests: SPA shell served for non-API routes; users use UUID keys; soft delete keeps rows; React shell renders; CI green.
-Open spikes: confirm Stripe Smart Retries can be disabled for connected accounts, or define the fallback (engine pays invoices; see Phase 6).
+Spike T0.6 (done, desk research): Stripe documents the retry settings (Smart Retries or custom rules) as **Dashboard settings of each account**, with no documented API that lets a platform switch them off on a connected account, and Express accounts only have a limited Dashboard. So we do **not** depend on that setting. Fallback adopted: on `invoice.created` (draft, before finalisation) and again on `invoice.payment_failed`, the platform sets `auto_advance=false` on the invoice, which Stripe documents as stopping automatic finalising, reattempts and reminders; our engine then pays the invoice itself on its schedule (`invoices.pay` with idempotency keys, on the `Stripe-Account` header). Remaining risk to confirm in Stripe test mode with test clocks (Phase 3 client, Phase 6 T6.4): that `auto_advance=false` on a past-due subscription invoice really suppresses the retry and does not by itself cancel the subscription. Sources: docs.stripe.com/billing/revenue-recovery/smart-retries, /invoicing/automatic-collection.
 
 ### Phase 1: Auth (JWT + refresh) and RBAC
 Scope: register, login, logout, refresh rotation with reuse detection, email verification, password reset, rate limits, roles/permissions seeding, first admin seed command, frontend auth store + Axios refresh interceptor + route guards.
@@ -385,7 +385,7 @@ Commission ledger and tiers, custom domains, coupons+, provider staff roles, out
 | # | Decision | Status |
 |---|---|---|
 | 1 | Stripe **direct charges** (provider is merchant of record), platform fee via `application_fee_percent` | Locked |
-| 2 | Own retry engine (Stripe automatic retries disabled) | Locked, pending Phase 0 spike on connected accounts |
+| 2 | Own retry engine; Stripe retries suppressed per invoice with `auto_advance=false` (account-level retry settings cannot be controlled on connected accounts) | Locked; confirm with test clocks in Phase 6 |
 | 3 | Global customer account; storefront shows sign up for new users and one-click "Continue as" for signed-in users; provider sees only users who actually subscribed | Locked |
 | 4 | Provider auto-approve is **on by default**, configurable in admin settings | Locked |
 | 5 | Provider picks currency from the list the admin enables | Locked |

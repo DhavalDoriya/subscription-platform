@@ -4,6 +4,7 @@ use App\Exceptions\ApiException;
 use App\Http\Requests\ListRequest;
 use App\Models\User;
 use App\Support\Api\ApiResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
@@ -21,7 +22,7 @@ beforeEach(function () {
             'sort' => $request->sortColumn(['name', 'email'], 'name'),
             'direction' => $request->sortDirection(),
         ]));
-        Route::post('validate', fn (Illuminate\Http\Request $request) => $request->validate(['name' => 'required']));
+        Route::post('validate', fn (Request $request) => $request->validate(['name' => 'required']));
         Route::get('secure', fn () => ApiResponse::success([]))->middleware('auth:api');
         Route::get('forbidden', fn () => abort(403));
         Route::get('business-rule', fn () => throw new ApiException('Slug is taken.', 409, 'slug_taken', ['slug' => ['Already in use.']]));
