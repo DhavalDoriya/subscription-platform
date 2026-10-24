@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Mail\DatabaseTemplateMail;
+use App\Services\Mail\TemplateMail;
 use App\Services\Stripe\StripeApi;
 use App\Services\Stripe\StripeGateway;
 use App\Support\Tenancy\TenantContext;
@@ -19,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(TenantContext::class);
+        $this->app->singleton(TemplateMail::class, DatabaseTemplateMail::class);
         $this->app->singleton(StripeGateway::class, fn () => new StripeApi(StripeApi::clientFromSettings(...)));
     }
 

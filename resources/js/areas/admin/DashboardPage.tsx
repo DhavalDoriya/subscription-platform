@@ -4,6 +4,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
 import { ProviderStatusBadge } from './ProviderStatusBadge';
 import { useDashboard } from './services/dashboard';
 import { providerStatuses } from './services/providers';
@@ -16,6 +17,12 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
         </section>
     );
 }
+
+/** Amounts per currency, e.g. "$80.00 · €15.00"; they cannot be added across currencies. */
+const money = (byCurrency: Record<string, number>) => {
+    const parts = Object.entries(byCurrency).map(([currency, amount]) => formatMoney(amount, currency));
+    return parts.length ? parts.join(' · ') : formatMoney(0, 'usd');
+};
 
 export function DashboardPage() {
     const { data, error, isLoading } = useDashboard();
@@ -40,6 +47,25 @@ export function DashboardPage() {
                                     </li>
                                 ))}
                             </ul>
+                        </Panel>
+                    </div>
+                    <div className="lg:col-span-3">
+                        <Panel title="Payment recovery">
+                            <dl className="mt-3 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                                {(
+                                    [
+                                        ['Failed invoices', String(data.dunning.open_invoices)],
+                                        ['Amount outstanding', money(data.dunning.open_amount)],
+                                        ['Monthly revenue at risk', money(data.dunning.at_risk_mrr)],
+                                        ['Recovery rate (30 days)', data.dunning.recovery_rate === null ? '—' : `${data.dunning.recovery_rate}%`],
+                                    ] as const
+                                ).map(([label, value]) => (
+                                    <div key={label}>
+                                        <dt className="text-sm text-muted-foreground">{label}</dt>
+                                        <dd className="mt-1 text-2xl font-semibold tabular-nums">{value}</dd>
+                                    </div>
+                                ))}
+                            </dl>
                         </Panel>
                     </div>
                     <Panel title="Customers">

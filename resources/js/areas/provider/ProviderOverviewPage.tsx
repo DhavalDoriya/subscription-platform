@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Alert } from '@/components/ui/Alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api';
+import { OverviewMetrics } from './OverviewMetrics';
 import { StripeCard } from './StripeCard';
 import { storefrontHost, useMyProvider, usePlatformConfig, type MyProvider } from './services/provider';
 
@@ -32,6 +33,7 @@ export function ProviderOverviewPage() {
     return (
         <>
             <PageHeader title="Overview" description={`Storefront address: ${storefrontHost(provider.slug, config)}`} />
+            {provider.status === 'active' && <OverviewMetrics />}
             <section role="status" aria-label="Account status" className="max-w-2xl rounded-lg border bg-card p-6">
                 <h2 className="text-lg font-semibold">{message.title}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">{message.body}</p>

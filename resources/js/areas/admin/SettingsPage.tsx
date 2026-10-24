@@ -9,6 +9,7 @@ import { ApiError } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth';
 import { useFormSubmit } from '@/lib/useFormSubmit';
 import { useSaveSettings, useSettings, type SettingsPayload } from './services/settings';
+import { MailTestPanel } from './MailTestPanel';
 import { StripeConnectionPanel } from './StripeConnectionPanel';
 import { settingGroups, type SettingField } from './settingsSchema';
 
@@ -45,7 +46,9 @@ function changes(initial: Draft, draft: Draft): Record<string, Record<string, un
                           .map((v) => v.trim())
                           .filter(Boolean)
                     : field.kind === 'number'
-                      ? Number(value)
+                      ? value === ''
+                          ? null
+                          : Number(value)
                       : value === '' && field.kind === 'email'
                         ? null
                         : value;
@@ -96,6 +99,34 @@ function Field({
             <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">{field.label}</span>
                 <span className="text-muted-foreground">{secretIsSet ? 'Set' : 'Not set'}</span>
+            </div>
+        );
+    }
+
+    if (field.kind === 'select') {
+        const id = `setting-${field.key}`;
+        return (
+            <div className="flex flex-col gap-1.5">
+                <label htmlFor={id} className="text-sm font-medium">
+                    {field.label}
+                </label>
+                <select
+                    id={id}
+                    value={String(value ?? '')}
+                    onChange={(e) => set(field.key, e.target.value)}
+                    className="h-11 rounded-md border border-border bg-card px-3 text-base outline-none focus:border-primary"
+                >
+                    {field.options?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+                {error ? (
+                    <p className="text-sm text-destructive">{error}</p>
+                ) : field.hint ? (
+                    <p className="text-sm text-muted-foreground">{field.hint}</p>
+                ) : null}
             </div>
         );
     }
@@ -172,6 +203,7 @@ export function SettingsPage() {
             {error && <Alert>{error instanceof ApiError ? error.message : 'Something went wrong.'}</Alert>}
             {!data && !error && <Skeleton className="h-64 w-full" />}
             {data && <SettingsForm key={dataUpdatedAt} data={data} />}
+            <MailTestPanel />
         </>
     );
 }

@@ -6,15 +6,6 @@ use App\Models\ProviderCustomer;
 use App\Models\RefreshToken;
 use App\Models\User;
 
-function adminSession(string $role = 'admin'): User
-{
-    $admin = User::factory()->create(['password' => 'Password123!'])->assignRole($role);
-    test()->withToken(loginAs($admin)->json('data.access_token'));
-    app('auth')->forgetGuards();
-
-    return $admin;
-}
-
 function customer(array $attributes = []): User
 {
     return User::factory()->create(array_merge(['password' => 'Password123!'], $attributes))->assignRole('customer');

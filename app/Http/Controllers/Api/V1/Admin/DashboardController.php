@@ -6,12 +6,13 @@ use App\Enums\ProviderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Provider;
 use App\Models\User;
+use App\Services\Dunning\DunningMetrics;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
 {
-    public function show(): JsonResponse
+    public function show(DunningMetrics $dunning): JsonResponse
     {
         $byStatus = Provider::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
         $statuses = collect(ProviderStatus::cases())->mapWithKeys(fn (ProviderStatus $status) => [$status->value => (int) ($byStatus[$status->value] ?? 0)]);
@@ -19,6 +20,7 @@ class DashboardController extends Controller
 
         return ApiResponse::success([
             'providers' => ['total' => $statuses->sum(), 'by_status' => $statuses],
+            'dunning' => $dunning->forPlatform(),
             'customers' => ['total' => (clone $customers)->count()],
             'recent_providers' => Provider::latest()->limit(5)->get(['id', 'name', 'slug', 'status', 'created_at'])
                 ->map(fn (Provider $p) => ['id' => $p->id, 'name' => $p->name, 'slug' => $p->slug, 'status' => $p->status->value, 'created_at' => $p->created_at->toIso8601String()]),

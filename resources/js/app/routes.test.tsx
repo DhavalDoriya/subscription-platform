@@ -10,8 +10,17 @@ import { AppRoutes } from './routes';
 const url = (p: string) => `http://localhost/api/v1${p}`;
 const server = setupServer(
     http.get(url('/admin/dashboard'), () =>
-        HttpResponse.json({ data: { providers: { total: 0, by_status: {} }, customers: { total: 0 }, recent_providers: [], recent_customers: [] } }),
+        HttpResponse.json({
+            data: {
+                providers: { total: 0, by_status: {} },
+                customers: { total: 0 },
+                dunning: { open_invoices: 0, open_amount: {}, at_risk_mrr: {}, recovered_30d: 0, lost_30d: 0, recovery_rate: null },
+                recent_providers: [],
+                recent_customers: [],
+            },
+        }),
     ),
+    http.get(url('/customer/payment-issues'), () => HttpResponse.json({ data: [] })),
     http.get(url('/admin/admins'), () => HttpResponse.json({ data: [], meta: { current_page: 1, per_page: 15, total: 0, last_page: 1 } })),
 );
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
@@ -105,5 +114,17 @@ describe('FR-A4 admin routes', () => {
         renderAt('/become-a-provider', ['customer']);
 
         expect(await screen.findByRole('heading', { name: 'Become a provider' })).toBeInTheDocument();
+    });
+});
+
+describe('FR-R3 fix payment route', () => {
+    it('sends guests to sign in', () => {
+        renderAt('/account/fix-payment', null);
+        expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    });
+
+    it('shows a signed-in customer the page the emails link to', async () => {
+        renderAt('/account/fix-payment', ['customer']);
+        expect(await screen.findByRole('heading', { name: 'Fix your payment' })).toBeInTheDocument();
     });
 });

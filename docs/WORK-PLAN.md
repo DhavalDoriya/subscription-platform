@@ -20,6 +20,9 @@ Open items from earlier phases. Revisit them at the next phase boundary; none bl
 - **ESLint** Deferred: `typescript-eslint` does not support TypeScript 7 yet. Pin TypeScript 6 or wait.
 - **Stripe retry suppression** (`auto_advance=false`) is desk research only; verify with test clocks in T6.4.
 - **Real Stripe test-mode walkthrough** (Phase 3 exit criterion): needs `sk_test_` key and the two webhook secrets saved in admin Settings, then connect a provider, publish a plan and replay a webhook. Everything so far runs against `FakeStripeGateway`, so check the real SDK v22 calls (`accounts->create`, `accountLinks->create`, `products/prices` with `stripe_account`) and pin an API version.
+- **Phase 5 against real Stripe** (needs the same keys): subscriptions are created with `payment_behavior=default_incomplete` and expanded with `latest_invoice.confirmation_secret` + `pending_setup_intent` (Stripe API 2025-03-31 or newer; pin an API version and check the client secret reaches Payment Element). Stripe.js is created with `stripeAccount` (direct charges). Check: SCA/3DS card `4000002500003155`, test-clock renewal, upgrade proration against our `ProrationCalculator` preview, `charge.refunded` after a real refund, and that `payment_intent.*` events still carry the invoice link on the pinned API version (newer versions moved it to `invoice.payments`; a payment that arrives before its invoice is stored without an invoice id).
+- **Phase 6 carried over:** per-provider retry schedule override (FR-R2 optional); pre-failure warning email and card-expiry notices (FR-R6/R11); smart retry timing (FR-R10); a decline arriving via `payment_intent.payment_failed` before its invoice is now linked via `payments.stripe_invoice_id`; mail is still the stub until Phase 7.
+- Admin dashboard (FR-AD1) does not show subscription numbers (MRR, GMV) yet.
 - Nothing is committed yet. Ask before committing.
 
 ## Overview
@@ -37,7 +40,7 @@ Open items from earlier phases. Revisit them at the next phase boundary; none bl
 | 8 | Commission v1 | 5 | M | Rates, application fee, commission records and views |
 | 9 | Hardening and launch | all | M | Reports, security review, E2E sweep, deploy decision |
 
-Phase 7 can run in parallel with Phase 6 after Phase 5. Phase 6 uses stub mail until 7 lands.
+Phase 7 can run in parallel with Phase 6 after Phase 5. Phase 7 is built apart from T7.7; Phase 6 now sends through the real template mailer.
 
 ---
 
@@ -164,17 +167,17 @@ Tests first:
 - media upload rejects wrong type and oversize files
 
 Tasks:
-- [ ] **T4.1** `storefront_pages`, `page_blocks`, `media` migrations and models (M).
-- [ ] **T4.2** Public storefront API by tenant (page, plans, branding) with caching (M).
-- [ ] **T4.3** Block editor API: reorder, show/hide, draft/publish, preview token (M).
-- [ ] **T4.4** Media library: S3/MinIO upload, validation, image optimization (M).
-- [ ] **T4.5** Sanitizer for rich text, SEO fields (title, description, OG image) (S).
-- [ ] **T4.6** Storefront React app: hero, about, plans/pricing, FAQ, contact, footer; tenant resolution from host (L).
-- [ ] **T4.7** Provider UI: content editor with live preview, publish (L).
-- [ ] **T4.8** Unavailable page for inactive providers (S).
-- [ ] **T4.9** Admin moderation: unpublish a storefront (FR-AD12) (S).
+- [x] **T4.1** `storefront_pages`, `page_blocks`, `media` migrations and models (M).
+- [x] **T4.2** Public storefront API by tenant (page, plans, branding) with caching (M).
+- [x] **T4.3** Block editor API: reorder, show/hide, draft/publish, preview token (M).
+- [x] **T4.4** Media library: upload, validation, image optimization (M). Done: `media` table (tenant-scoped), `MediaService` (JPG/PNG/WebP/GIF only, real-image check, `media.max_upload_kb` 5 MB, `media.max_width` 2000 px, GD re-encode drops EXIF, GIFs stored untouched), disk from `MEDIA_DISK` (`public` locally, `s3` for AWS or MinIO, unexercised), `/provider/media` list/upload/alt/delete, `ImageField` + `MediaLibraryDialog` on image blocks, hero and share image (typed https URLs still work). Logo and favicon upload (T2.12) are not wired yet.
+- [x] **T4.5** Sanitizer for rich text, SEO fields (title, description, OG image) (S).
+- [x] **T4.6** Storefront React app: hero, about, plans/pricing, FAQ, contact, footer; tenant resolution from host (L).
+- [x] **T4.7** Provider UI: content editor with live preview, publish (L). Reworked (Oct 2026) into a list-then-form editor: sections list with reorder/hide/remove, "Add section" picker with descriptions, one form open at a time (Back to sections), Search and sharing as its own entry, failed saves open the section with the error, Editor/Preview toggle with desktop and mobile frames.
+- [x] **T4.8** Unavailable page for inactive providers (S).
+- [x] **T4.9** Admin moderation: unpublish a storefront (FR-AD12) (S).
 
-**Exit criteria:** a provider edits and publishes a page that renders on its subdomain, and an admin deactivation hides it.
+**Exit criteria:** a provider edits and publishes a page that renders on its subdomain, and an admin deactivation hides it. **Met** (storefront e2e spec, on a mapped `*.platform.test` host).
 
 ---
 
@@ -191,20 +194,20 @@ Tests first:
 - cancel at period end and resume
 
 Tasks:
-- [ ] **T5.1** `subscriptions`, `invoices`, `payments`, `payment_methods` migrations and models (M).
-- [ ] **T5.2** Provider-scoped Stripe customer creation on first join (S).
-- [ ] **T5.3** Checkout API: SetupIntent/PaymentIntent, 3DS/SCA, create subscription with `application_fee_percent` placeholder (L).
-- [ ] **T5.4** Webhook handlers: `customer.subscription.*`, `invoice.*`, `payment_intent.*`, refunds (L).
-- [ ] **T5.5** Lifecycle: trial, active, cancel, resume, upgrade/downgrade with proration (L).
-- [ ] **T5.6** Access endpoint for providers' products (`/subscriptions/{id}/access`) (S).
-- [ ] **T5.7** Refunds (full and partial) by provider and admin (M).
-- [ ] **T5.8** Storefront join flow UI: sign up, or "Continue as <name>" when signed in; Payment Element checkout (L).
-- [ ] **T5.9** Customer portal UI: subscriptions, invoices, payment methods, profile (L).
-- [ ] **T5.10** Provider dashboard: overview metrics, subscribers list (real users only), invoices and transactions (L).
-- [ ] **T5.11** Admin: subscriptions and invoices listing with manual actions (FR-AD6) (M).
-- [ ] **T5.12** Nightly reconciliation job against Stripe (FR-PM6) (M).
+- [x] **T5.1** `subscriptions`, `invoices`, `payments`, `payment_methods` migrations and models (M).
+- [x] **T5.2** Provider-scoped Stripe customer creation on first join (S).
+- [x] **T5.3** Checkout API: SetupIntent/PaymentIntent, 3DS/SCA, create subscription with `application_fee_percent` placeholder (L).
+- [x] **T5.4** Webhook handlers: `customer.subscription.*`, `invoice.*`, `payment_intent.*`, refunds (L).
+- [x] **T5.5** Lifecycle: trial, active, cancel, resume, upgrade/downgrade with proration (L).
+- [x] **T5.6** Access endpoint for providers' products (`/subscriptions/{id}/access`) (S).
+- [x] **T5.7** Refunds (full and partial) by provider and admin (M).
+- [x] **T5.8** Storefront join flow UI: sign up, or "Continue as <name>" when signed in; Payment Element checkout (L).
+- [x] **T5.9** Customer portal UI: subscriptions, invoices, payment methods, profile (L).
+- [x] **T5.10** Provider dashboard: overview metrics, subscribers list (real users only), invoices and transactions (L).
+- [x] **T5.11** Admin: subscriptions and invoices listing with manual actions (FR-AD6) (M).
+- [x] **T5.12** Nightly reconciliation job against Stripe (FR-PM6) (M).
 
-**Exit criteria:** end to end in Stripe test mode: join, pay, renew via test clock, upgrade, cancel; Playwright covers the customer and provider flows.
+**Exit criteria:** end to end in Stripe test mode: join, pay, renew via test clock, upgrade, cancel; Playwright covers the customer and provider flows. **Met against the fake gateway** (Pest 426, Vitest 242, Playwright billing sweep with seeded demo data from `DemoBillingSeeder`); **not yet run against real Stripe test mode** (needs keys, see Carried over). Notes: commission columns (gross, fee, net) on the provider payments view arrive with Phase 8; manual retry in admin arrives with Phase 6.
 
 ---
 
@@ -222,17 +225,19 @@ Tests first (Stripe test clocks and fakes):
 - provider deactivation pauses billing and reactivation resumes it
 
 Tasks:
-- [ ] **T6.1** `payment_attempts` and `dunning_events` migrations and models (S).
-- [ ] **T6.2** Decline-code classifier (soft, hard, auth-required) with a table-driven test (M).
-- [ ] **T6.3** Retry scheduler: daily command plus per-invoice queued job, locks, idempotency keys (L).
-- [ ] **T6.4** Suppress Stripe automatic retries per invoice (`auto_advance=false` on `invoice.created` / `invoice.payment_failed`, per the Phase 0 spike) and verify with test clocks (S).
-- [ ] **T6.5** State machine: past_due to grace to canceled/paused; admin-configurable schedule, grace days, final action (M).
-- [ ] **T6.6** Dunning notifications wired to template keys (mail stub until Phase 7) (M).
-- [ ] **T6.7** "Fix payment" flow reachable from emails; immediate retry after card update (M).
-- [ ] **T6.8** Manual retry and mark-resolved for provider and admin (S).
-- [ ] **T6.9** Provider deactivation pauses billing via `pause_collection`; reactivation resumes (FR-P9) (M).
-- [ ] **T6.10** Dashboards: failed payments, recovery rate, at-risk MRR (M).
-- [ ] **T6.11** Admin retry and dunning settings UI (S).
+- [x] **T6.1** `payment_attempts` and `dunning_events` migrations and models (S). Done: `payment_attempts` and `dunning_events` tables and models, plus `invoices.dunning_status/first_failed_at/next_retry_at`; tenant isolation tested.
+- [x] **T6.2** Decline-code classifier (soft, hard, auth-required) with a table-driven test (M). Done: `DeclineClassifier` (soft, hard, auth-required), table-driven test.
+- [x] **T6.3** Retry scheduler: daily command plus per-invoice queued job, locks, idempotency keys (L). Done: `billing:retry-payments` hourly plus per-invoice `RetryInvoicePayment` job with locks and idempotency keys; two workers charge once.
+- [ ] **T6.4** Suppress Stripe automatic retries per invoice (`auto_advance=false` on `invoice.created` / `invoice.payment_failed`, per the Phase 0 spike) and verify with test clocks (S). Not done: the code is built (`invoice.payment_failed` sets `auto_advance=false` and hands the invoice to the engine; deliberately NOT done on `invoice.created` because a draft with auto_advance off would never finalise or charge, a deviation from the original plan) but it is unverified against real Stripe test clocks.
+- [x] **T6.5** State machine: past_due to grace to canceled/paused; admin-configurable schedule, grace days, final action (M). Done: `DunningService` state machine past_due to grace to cancel or pause; schedule, grace days and final action in `DunningSettings` (admin-configurable); `billing:expire-grace` hourly.
+- [x] **T6.6** Dunning notifications wired to template keys (mail stub until Phase 7) (M). Done: `DunningNotifier` sends the dunning notices by template key through the mail stub (real templates arrive with Phase 7).
+- [x] **T6.7** "Fix payment" flow reachable from emails; immediate retry after card update (M). Done: `/account/fix-payment` page and `GET /customer/payment-issues` with the "Payment problems" banner; a card update retries immediately.
+- [x] **T6.8** Manual retry and mark-resolved for provider and admin (S). Done: `GET /provider|admin/invoices/{id}/dunning` and `POST .../retry|resolve` (`DunningActions`) with `Recovery.tsx` buttons and history dialog.
+- [x] **T6.9** Provider deactivation pauses billing via `pause_collection`; reactivation resumes (FR-P9) (M). Done: `ProviderBillingPause` hooked into `ProviderLifecycle`: deactivation pauses billing via `pause_collection`, reactivation resumes it.
+- [x] **T6.10** Dashboards: failed payments, recovery rate, at-risk MRR (M). Done: `DunningMetrics` (failed invoices, amount outstanding, at-risk MRR, recovery rate) on the provider overview and the admin dashboard.
+- [x] **T6.11** Admin retry and dunning settings UI (S). Done: Admin Settings "Payment recovery" group (retry days, grace days, final action).
+
+**Exit criteria status:** met against the fake gateway: `tests/Feature/Dunning/DunningEngineTest.php` walks failure, retries at +1/+3/+5/+7 days, grace and cancel with exact timestamps. Playwright `recovery.spec.ts` covers the provider, customer and admin screens. Not yet run against real Stripe test clocks (T6.4).
 
 **Exit criteria:** a test-clock scenario walks failure, retries, recovery and final cancellation with the exact timestamps from the schedule.
 
@@ -249,13 +254,13 @@ Tests first:
 - failed sends are logged and can be resent
 
 Tasks:
-- [ ] **T7.1** `email_templates` (+ versions) and `email_logs` migrations and models (M).
-- [ ] **T7.2** Template renderer with a documented variable list per template key (M).
-- [ ] **T7.3** Seed the default template set from PRD section 4.9 (auth, provider, billing, dunning, admin alerts) (M).
-- [ ] **T7.4** Mailer using DB-stored credentials (SMTP/SES/Mailgun), encrypted; test-send endpoint (M).
-- [ ] **T7.5** Queued sending, delivery log, resend (S).
-- [ ] **T7.6** Admin UI: template list, editor with preview, version history, mail settings, delivery log (L).
-- [ ] **T7.7** Replace Phase 1 and 6 mail stubs with real template keys (S).
+- [x] **T7.1** `email_templates` (+ versions) and `email_logs` migrations and models (M). Done: `email_templates`, `email_template_versions`, `email_logs` (uuid, soft deletes; logs are admin-only, nullable provider_id, no tenant scope).
+- [x] **T7.2** Template renderer with a documented variable list per template key (M). Done: `TemplateRenderer`; only documented placeholders are filled, missing or unknown ones render empty, values escaped in HTML only; saving an undocumented placeholder is a 422.
+- [x] **T7.3** Seed the default template set from PRD section 4.9 (auth, provider, billing, dunning, admin alerts) (M). Done: `config/email_templates.php` (variable catalog + 36 defaults) and `EmailTemplateSeeder` (never overwrites edits; a missing template is created on first use).
+- [x] **T7.4** Mailer using DB-stored credentials (SMTP/SES/Mailgun), encrypted; test-send endpoint (M). Done: `mail.*` settings (password and API key are secrets), `MailConfigurator` builds the mailer at send time, `POST /admin/mail/test` (502 `mail_test_failed` on refusal). SES and Mailgun need `aws/aws-sdk-php` / `symfony/mailgun-mailer`, not installed.
+- [x] **T7.5** Queued sending, delivery log, resend (S). Done: `DatabaseTemplateMail` queues `SendEmailLog` after commit; statuses queued/sent/failed/skipped (disabled template); resend of failed rows.
+- [x] **T7.6** Admin UI: template list, editor with preview, version history, mail settings, delivery log (L). Done (Vitest only, no Playwright pass yet): admin Email templates (list, editor with server-rendered preview, versions + restore, test send), Email logs (filter, body, resend), Mail section in Settings.
+- [ ] **T7.7** Replace Phase 1 and 6 mail stubs with real template keys (S). Half done: the dunning keys use the real mailer. Auth emails (verify, reset) still use Laravel's default notifications, and nothing calls the provider, customer-billing or admin-alert keys yet.
 
 **Exit criteria:** admin edits the "payment failed" template and the next dunning email reflects it; delivery log shows the send in Mailpit.
 

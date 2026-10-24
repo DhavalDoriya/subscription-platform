@@ -36,8 +36,8 @@ describe('AdminLayout', () => {
             within(nav)
                 .getAllByRole('heading')
                 .map((h) => h.textContent),
-        ).toEqual(['Overview', 'Marketplace', 'People', 'System']);
-        for (const link of ['Dashboard', 'Providers', 'Customers', 'Audit log', 'Settings']) {
+        ).toEqual(['Overview', 'Marketplace', 'Billing', 'Email', 'People', 'System']);
+        for (const link of ['Dashboard', 'Providers', 'Subscriptions', 'Invoices', 'Email templates', 'Email log', 'Customers', 'Audit log', 'Settings']) {
             expect(within(nav).getByRole('link', { name: link })).toBeInTheDocument();
         }
     });

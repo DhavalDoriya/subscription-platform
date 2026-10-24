@@ -10,7 +10,7 @@ import { TextField } from '@/components/ui/TextField';
 import { ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useFormSubmit } from '@/lib/useFormSubmit';
-import { providerActions, useProviderAction, useUpdateProvider, type AdminProvider, type ProviderAction } from './services/providers';
+import { providerActions, useProviderAction, useUnpublishStorefront, useUpdateProvider, type AdminProvider, type ProviderAction } from './services/providers';
 import { ProviderStatusBadge } from './ProviderStatusBadge';
 
 const labels: Record<ProviderAction, string> = {
@@ -82,6 +82,8 @@ function EditForm({ provider }: { provider: AdminProvider }) {
 
 export function ProviderDialog({ provider, onClose }: { provider: AdminProvider | null; onClose: () => void }) {
     const run = useProviderAction();
+    const unpublish = useUnpublishStorefront();
+    const [unpublishing, setUnpublishing] = useState(false);
     const [confirming, setConfirming] = useState<ProviderAction | null>(null);
     const [rejecting, setRejecting] = useState(false);
     const [reason, setReason] = useState('');
@@ -147,6 +149,9 @@ export function ProviderDialog({ provider, onClose }: { provider: AdminProvider 
                                 {labels[action]}
                             </Button>
                         ))}
+                        <Button variant="outline" onClick={() => setUnpublishing(true)}>
+                            Unpublish storefront
+                        </Button>
                     </div>
 
                     <EditForm key={provider.id} provider={provider} />
@@ -178,6 +183,19 @@ export function ProviderDialog({ provider, onClose }: { provider: AdminProvider 
                     </div>
                 )}
             </FormDialog>
+
+            <ConfirmDialog
+                open={unpublishing}
+                onOpenChange={setUnpublishing}
+                title={`Unpublish ${provider.name}'s storefront?`}
+                description="The public page goes offline until the owner publishes it again. This does not change their status or billing. It is recorded in the audit log."
+                confirmLabel="Unpublish"
+                destructive
+                onConfirm={async () => {
+                    await unpublish.mutateAsync(provider.id);
+                    toast.success('Storefront unpublished');
+                }}
+            />
 
             <ConfirmDialog
                 open={confirming !== null}

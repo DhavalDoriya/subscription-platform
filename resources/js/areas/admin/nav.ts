@@ -1,4 +1,18 @@
-import { Layers, LayoutDashboard, ScrollText, Settings, ShieldCheck, Store, Users, Webhook, type LucideIcon } from 'lucide-react';
+import {
+    CreditCard,
+    FileText,
+    Layers,
+    Mail,
+    MailCheck,
+    LayoutDashboard,
+    ScrollText,
+    Settings,
+    ShieldCheck,
+    Store,
+    Users,
+    Webhook,
+    type LucideIcon,
+} from 'lucide-react';
 import type { Role } from '@/lib/auth';
 
 export interface NavItem {
@@ -23,6 +37,20 @@ export const adminNav: NavGroup[] = [
         items: [
             { label: 'Providers', to: '/admin/providers', icon: Store },
             { label: 'Plans', to: '/admin/plans', icon: Layers },
+        ],
+    },
+    {
+        label: 'Billing',
+        items: [
+            { label: 'Subscriptions', to: '/admin/subscriptions', icon: CreditCard },
+            { label: 'Invoices', to: '/admin/invoices', icon: FileText },
+        ],
+    },
+    {
+        label: 'Email',
+        items: [
+            { label: 'Email templates', to: '/admin/email-templates', icon: Mail },
+            { label: 'Email log', to: '/admin/email-log', icon: MailCheck },
         ],
     },
     {

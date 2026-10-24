@@ -15,6 +15,9 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    // Where provider uploads (media library) live: `public` locally, `s3` (AWS or MinIO) in production.
+    'media_disk' => env('MEDIA_DISK', 'public'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks

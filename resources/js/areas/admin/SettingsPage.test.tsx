@@ -17,6 +17,7 @@ const settings = {
         allowed_intervals: { value: ['month', 'year'] },
     },
     stripe: { secret_key: { is_set: true }, webhook_secret: { is_set: false }, connect_webhook_secret: { is_set: false }, tax_enabled: { value: false } },
+    dunning: { retry_days: { value: ['1', '3', '5', '7'] }, grace_days: { value: 7 }, final_action: { value: 'cancel' } },
     security: { min_password_length: { value: 8 } },
 };
 const stripeInfo = {
@@ -71,6 +72,29 @@ describe('FR-AD7 settings page', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
         await waitFor(() => expect(body).toEqual({ settings: { provider: { auto_approve: false, allowed_currencies: ['usd', 'cad'] } } }));
+    });
+
+    it('FR-R2 edits the retry schedule, the grace period and the final action', async () => {
+        useAuthStore.getState().setSession(user('admin') as never, 't');
+        let body: unknown;
+        server.use(
+            http.put(url('/admin/settings'), async ({ request }) => {
+                body = await request.json();
+                return HttpResponse.json({ data: settings });
+            }),
+        );
+        renderWithProviders(<SettingsPage />);
+
+        expect(await screen.findByLabelText('Retry after (days)')).toHaveValue('1, 3, 5, 7');
+        expect(screen.getByLabelText('Grace period (days)')).toHaveValue(7);
+        expect(screen.getByLabelText('When grace ends')).toHaveValue('cancel');
+
+        await userEvent.clear(screen.getByLabelText('Retry after (days)'));
+        await userEvent.type(screen.getByLabelText('Retry after (days)'), '2, 4');
+        await userEvent.selectOptions(screen.getByLabelText('When grace ends'), 'pause');
+        await userEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+
+        await waitFor(() => expect(body).toEqual({ settings: { dunning: { retry_days: ['2', '4'], final_action: 'pause' } } }));
     });
 
     it('shows API validation errors next to the field', async () => {
@@ -159,5 +183,72 @@ describe('FR-PL10 price limits', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
         await waitFor(() => expect(body).toEqual({ settings: { provider: { min_price: 250 } } }));
+    });
+});
+
+describe('FR-E5 mail settings', () => {
+    const withMail = {
+        ...settings,
+        mail: {
+            driver: { value: 'default' },
+            host: { value: null },
+            port: { value: null },
+            username: { value: null },
+            password: { is_set: true },
+            encryption: { value: 'tls' },
+            api_key: { is_set: false },
+            api_domain: { value: null },
+            from_address: { value: null },
+            from_name: { value: null },
+        },
+    };
+
+    beforeEach(() => server.use(http.get(url('/admin/settings'), () => HttpResponse.json({ data: withMail }))));
+
+    it('saves the mail server details and keeps the password write-only', async () => {
+        useAuthStore.getState().setSession(user('super_admin') as never, 't');
+        let body: unknown;
+        server.use(http.put(url('/admin/settings'), async ({ request }) => ((body = await request.json()), HttpResponse.json({ data: withMail }))));
+        renderWithProviders(<SettingsPage />);
+
+        const mail = await screen.findByRole('region', { name: 'Mail' });
+        expect(within(mail).getByLabelText('Password')).toHaveValue('');
+        await userEvent.selectOptions(within(mail).getByLabelText('Mail driver'), 'smtp');
+        await userEvent.type(within(mail).getByLabelText('SMTP host'), 'smtp.example.com');
+        await userEvent.type(within(mail).getByLabelText('SMTP port'), '587');
+        await userEvent.type(within(mail).getByLabelText('Password'), 's3cret');
+        await userEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+
+        await waitFor(() => expect(body).toEqual({ settings: { mail: { driver: 'smtp', host: 'smtp.example.com', port: 587, password: 's3cret' } } }));
+    });
+
+    it('sends a test email and reports the outcome', async () => {
+        useAuthStore.getState().setSession(user('admin') as never, 't');
+        let body: unknown;
+        server.use(http.post(url('/admin/mail/test'), async ({ request }) => ((body = await request.json()), HttpResponse.json({ data: { sent: true } }))));
+        renderWithProviders(<SettingsPage />);
+
+        const panel = await screen.findByRole('region', { name: 'Test email' });
+        await userEvent.type(within(panel).getByLabelText('Send a test email to'), 'me@example.com');
+        await userEvent.click(within(panel).getByRole('button', { name: 'Send test email' }));
+
+        await waitFor(() => expect(body).toEqual({ to: 'me@example.com' }));
+        expect(await within(panel).findByText('Test email sent to me@example.com.')).toBeInTheDocument();
+    });
+
+    it('shows why the test email failed', async () => {
+        useAuthStore.getState().setSession(user('admin') as never, 't');
+        server.use(
+            http.post(url('/admin/mail/test'), () =>
+                HttpResponse.json({ message: 'The test email could not be sent: refused', code: 'mail_test_failed' }, { status: 502 }),
+            ),
+        );
+        renderWithProviders(<SettingsPage />);
+
+        const panel = await screen.findByRole('region', { name: 'Test email' });
+        await userEvent.type(within(panel).getByLabelText('Send a test email to'), 'me@example.com');
+        await userEvent.click(within(panel).getByRole('button', { name: 'Send test email' }));
+
+        expect(await within(panel).findByText(/refused/)).toBeInTheDocument();
     });
 });

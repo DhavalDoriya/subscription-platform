@@ -64,6 +64,10 @@ return [
         'replay_failed' => 'The event failed again: :error',
     ],
 
+    'media' => [
+        'unsupported' => 'Upload a JPG, PNG, WebP or GIF image.',
+    ],
+
     'plans' => [
         'plan_limit_reached' => 'You have reached the maximum number of plans.',
         'stripe_not_enabled' => 'Finish connecting Stripe before publishing plans or adding prices to a live plan.',
@@ -73,5 +77,37 @@ return [
         'plan_archived' => 'This plan is archived.',
         'plan_in_use' => 'Only drafts can be deleted. Archive this plan instead.',
         'price_archived' => 'This price is archived.',
+    ],
+
+    'dunning' => [
+        'not_retryable' => 'This invoice cannot be retried: it is paid, or its subscription has ended or is paused.',
+        'not_resolvable' => 'This invoice has no failed payment to resolve.',
+    ],
+
+    'billing' => [
+        'storefront_required' => 'Subscribe from the provider\'s own storefront.',
+        'checkout_unavailable' => 'This provider is not accepting new subscribers right now.',
+        'already_subscribed' => 'You already have a subscription to this plan.',
+        'not_cancelable' => 'This subscription can no longer be cancelled.',
+        'not_resumable' => 'Only a subscription set to end can be resumed.',
+        'not_changeable' => 'This subscription cannot change plan right now.',
+        'same_price' => 'You are already on this price.',
+        'currency_mismatch' => 'The new price must use the same currency.',
+        'refund_exceeds' => 'The refund is larger than what is left to refund.',
+        'payment_method_in_use' => 'Add another card before removing this one, or cancel your subscription first.',
+        'not_refundable' => 'Only a successful payment can be refunded.',
+    ],
+
+    'storefront' => [
+        'storefront_empty' => 'Add at least one visible block before publishing.',
+        'provider_not_approved' => 'Your account must be approved and active to publish your storefront.',
+    ],
+
+    'mail' => [
+        'test_subject' => 'Test email from :platform',
+        'test_body' => 'This is a test email. Your mail settings work.',
+        'test_failed' => 'The test email could not be sent: :error',
+        'not_resendable' => 'Only a failed email can be resent.',
+        'unknown_variables' => 'These placeholders are not available in this template: :variables.',
     ],
 ];

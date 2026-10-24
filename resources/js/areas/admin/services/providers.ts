@@ -68,3 +68,9 @@ export function useUpdateProvider() {
         onSuccess: invalidate,
     });
 }
+
+/** Moderation: take the storefront offline without touching the provider's status or billing. */
+export function useUnpublishStorefront() {
+    const invalidate = useInvalidate();
+    return useMutation({ mutationFn: (id: string) => api.post<{ published: false }>(`/admin/providers/${id}/storefront/unpublish`), onSuccess: invalidate });
+}

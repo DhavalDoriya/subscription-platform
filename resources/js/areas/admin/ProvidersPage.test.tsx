@@ -197,4 +197,18 @@ describe('FR-AD4 provider detail and lifecycle actions', () => {
 
         expect(await within(dialog).findByText('This address is already taken.')).toBeInTheDocument();
     });
+
+    it('FR-AD12 takes a storefront offline after confirmation, leaving billing alone', async () => {
+        let called = false;
+        server.use(http.post(url('/admin/providers/p2/storefront/unpublish'), () => ((called = true), HttpResponse.json({ data: { published: false } }))));
+        const dialog = await openDetail('Beta Yoga');
+
+        await userEvent.click(within(dialog).getByRole('button', { name: 'Unpublish storefront' }));
+        const confirm = await screen.findByRole('alertdialog');
+        expect(confirm).toHaveTextContent(/does not change.*billing/i);
+        expect(called).toBe(false);
+        await userEvent.click(within(confirm).getByRole('button', { name: 'Unpublish' }));
+
+        await waitFor(() => expect(called).toBe(true));
+    });
 });

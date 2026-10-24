@@ -1,6 +1,11 @@
 <?php
 
 use App\Services\Stripe\Webhooks\AccountUpdatedHandler;
+use App\Services\Stripe\Webhooks\ChargeRefundedEventHandler;
+use App\Services\Stripe\Webhooks\InvoiceEventHandler;
+use App\Services\Stripe\Webhooks\PaymentIntentEventHandler;
+use App\Services\Stripe\Webhooks\PaymentMethodEventHandler;
+use App\Services\Stripe\Webhooks\SubscriptionEventHandler;
 
 /*
  * Stripe event type => handler class (implements StripeEventHandler). Events without a handler are stored as
@@ -9,5 +14,26 @@ use App\Services\Stripe\Webhooks\AccountUpdatedHandler;
 return [
     'handlers' => [
         'account.updated' => AccountUpdatedHandler::class,
+
+        'customer.subscription.created' => SubscriptionEventHandler::class,
+        'customer.subscription.updated' => SubscriptionEventHandler::class,
+        'customer.subscription.deleted' => SubscriptionEventHandler::class,
+
+        'invoice.created' => InvoiceEventHandler::class,
+        'invoice.finalized' => InvoiceEventHandler::class,
+        'invoice.updated' => InvoiceEventHandler::class,
+        'invoice.paid' => InvoiceEventHandler::class,
+        'invoice.payment_failed' => InvoiceEventHandler::class,
+        'invoice.voided' => InvoiceEventHandler::class,
+        'invoice.marked_uncollectible' => InvoiceEventHandler::class,
+
+        'payment_intent.succeeded' => PaymentIntentEventHandler::class,
+        'payment_intent.payment_failed' => PaymentIntentEventHandler::class,
+        'charge.refunded' => ChargeRefundedEventHandler::class,
+
+        'payment_method.attached' => PaymentMethodEventHandler::class,
+        'payment_method.updated' => PaymentMethodEventHandler::class,
+        'payment_method.detached' => PaymentMethodEventHandler::class,
+        'customer.updated' => PaymentMethodEventHandler::class,
     ],
 ];

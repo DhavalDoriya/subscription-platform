@@ -36,7 +36,7 @@ class UpdateSettingsRequest extends ApiFormRequest
             };
 
             if (($definition['type'] ?? null) === 'list') {
-                $rules["settings.{$key}.*"] = ['string', 'max:64'];
+                $rules["settings.{$key}.*"] = $definition['item_rules'] ?? ['string', 'max:64'];
             }
 
             array_unshift($rules["settings.{$key}"], 'sometimes');

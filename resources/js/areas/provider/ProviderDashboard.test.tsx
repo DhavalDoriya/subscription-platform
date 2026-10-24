@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -42,6 +42,20 @@ beforeEach(() => {
     useAuthStore.getState().setSession(user, 't');
     server.use(
         http.get(url('/provider'), () => HttpResponse.json({ data: provider })),
+        http.get(url('/provider/overview'), () =>
+            HttpResponse.json({
+                data: {
+                    currency: 'usd',
+                    mrr: 0,
+                    active_subscribers: 0,
+                    new_30d: 0,
+                    churned_30d: 0,
+                    failed_payments_30d: 0,
+                    upcoming_renewals_7d: 0,
+                    dunning: { open_invoices: 0, open_amount: 0, at_risk_mrr: 0, recovered_30d: 0, lost_30d: 0, recovery_rate: null },
+                },
+            }),
+        ),
         http.get(url('/public/config'), () =>
             HttpResponse.json({ data: { platform_name: 'Billing Platform', default_currency: 'usd', allowed_currencies: ['usd', 'eur'] } }),
         ),
@@ -95,6 +109,17 @@ describe('provider dashboard shell', () => {
         setup();
 
         expect(await screen.findByRole('status', { name: 'Account status' })).toHaveTextContent('Incomplete business details');
+    });
+
+    it('shows the key numbers only once the account is live', async () => {
+        setup();
+        await screen.findByRole('status', { name: 'Account status' });
+        expect(screen.queryByRole('region', { name: 'Key numbers' })).not.toBeInTheDocument();
+
+        cleanup();
+        server.use(http.get(url('/provider'), () => HttpResponse.json({ data: { ...provider, status: 'active' } })));
+        setup();
+        expect(await screen.findByRole('region', { name: 'Key numbers' })).toBeInTheDocument();
     });
 
     it('shows the storefront address', async () => {

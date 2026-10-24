@@ -69,6 +69,8 @@ A task is done only when `pest`, `npm run typecheck`, `npm test` and `npm run bu
 Build the admin panel following `.claude/skills/build-admin-panel/SKILL.md`: sidebar grouped by domain, one service-hook file + one page per entity, a single generic table and dialog reused everywhere, seed the first admin early, and verify with a real Playwright run (login, every page, one write, logout, no console errors or failed requests). Never run `vite build` while `vite dev` is running in the same directory.
 
 ## Gotchas
+- Billing tests: use the helpers in `tests/Pest.php` (`liveStorefront`, `customerSession`, `subscribe`, `onStorefront`, `asGuest`). A guest request after a login needs `asGuest()`, not just `withoutToken()`.
+- Demo data for local use and the billing Playwright spec: `php artisan db:seed --class=DemoBillingSeeder` (refuses to run on production).
 - Local tenant domains need `*.platform.test` pointing at 127.0.0.1 (dnsmasq or /etc/hosts entries per slug).
 - Refresh-token cookie is scoped to `/api/v1/auth` with `Domain=.platform.com` (`.platform.test` locally).
 - Seeding the first admin is a separate step from deploying (`php artisan app:create-admin`, added in Phase 1).

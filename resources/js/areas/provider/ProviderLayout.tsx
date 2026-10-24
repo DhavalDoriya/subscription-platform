@@ -1,4 +1,4 @@
-import { Layers, LayoutDashboard, LogOut, Settings } from 'lucide-react';
+import { CreditCard, Globe, Layers, LayoutDashboard, LogOut, Receipt, Settings, Users } from 'lucide-react';
 import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,11 @@ import { useMyProvider } from './services/provider';
 
 const nav = [
     { label: 'Overview', to: '/dashboard', icon: LayoutDashboard, end: true },
+    { label: 'Subscribers', to: '/dashboard/subscribers', icon: Users, end: false },
+    { label: 'Payments', to: '/dashboard/payments', icon: CreditCard, end: false },
+    { label: 'Invoices', to: '/dashboard/invoices', icon: Receipt, end: false },
     { label: 'Plans', to: '/dashboard/plans', icon: Layers, end: false },
+    { label: 'Storefront', to: '/dashboard/storefront', icon: Globe, end: false },
     { label: 'Settings', to: '/dashboard/settings', icon: Settings, end: false },
 ];
 

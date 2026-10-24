@@ -1,9 +1,18 @@
 <?php
 
+use App\Models\DunningEvent;
+use App\Models\Invoice;
+use App\Models\PageBlock;
+use App\Models\Payment;
+use App\Models\PaymentAttempt;
+use App\Models\PaymentMethod;
 use App\Models\Plan;
 use App\Models\Price;
 use App\Models\Provider;
 use App\Models\ProviderCustomer;
+use App\Models\Refund;
+use App\Models\StorefrontPage;
+use App\Models\Subscription;
 use App\Support\Tenancy\TenantContext;
 
 /*
@@ -56,4 +65,38 @@ it('FR-NFR the tenant context can be set and cleared explicitly', function () {
 it('FR-PL1 plans and prices are isolated per tenant', function () {
     assertTenantIsolation(Plan::class, fn (Provider $p) => Plan::factory()->create(['provider_id' => $p->id]));
     assertTenantIsolation(Price::class, fn (Provider $p) => Price::factory()->create(['provider_id' => $p->id, 'plan_id' => Plan::factory()->create(['provider_id' => $p->id])->id]));
+});
+
+it('FR-S1 storefront pages and blocks are isolated per tenant', function () {
+    assertTenantIsolation(StorefrontPage::class, fn (Provider $p) => StorefrontPage::factory()->create(['provider_id' => $p->id]));
+    assertTenantIsolation(PageBlock::class, fn (Provider $p) => PageBlock::factory()->create(['provider_id' => $p->id, 'storefront_page_id' => StorefrontPage::factory()->create(['provider_id' => $p->id])->id]));
+});
+
+it('FR-C2 billing records are isolated per tenant', function () {
+    assertTenantIsolation(Subscription::class, fn (Provider $p) => subscriptionFor($p));
+    assertTenantIsolation(Invoice::class, fn (Provider $p) => Invoice::factory()->create(['provider_id' => $p->id, 'subscription_id' => subscriptionFor($p)->id]));
+    assertTenantIsolation(Payment::class, fn (Provider $p) => Payment::factory()->create(['provider_id' => $p->id, 'subscription_id' => subscriptionFor($p)->id]));
+    assertTenantIsolation(PaymentMethod::class, fn (Provider $p) => PaymentMethod::factory()->create(['provider_id' => $p->id, 'provider_customer_id' => ProviderCustomer::factory()->create(['provider_id' => $p->id])->id]));
+    assertTenantIsolation(Refund::class, fn (Provider $p) => Refund::factory()->create(['provider_id' => $p->id, 'payment_id' => Payment::factory()->create(['provider_id' => $p->id, 'subscription_id' => subscriptionFor($p)->id])->id]));
+});
+
+function subscriptionFor(Provider $provider): Subscription
+{
+    $plan = Plan::factory()->create(['provider_id' => $provider->id]);
+    $price = Price::factory()->create(['provider_id' => $provider->id, 'plan_id' => $plan->id]);
+
+    return Subscription::factory()->create([
+        'provider_id' => $provider->id,
+        'provider_customer_id' => ProviderCustomer::factory()->create(['provider_id' => $provider->id])->id,
+        'plan_id' => $plan->id,
+        'price_id' => $price->id,
+    ]);
+}
+
+it('FR-R4 payment attempts are isolated per tenant', function () {
+    assertTenantIsolation(PaymentAttempt::class, fn (Provider $p) => PaymentAttempt::factory()->create(['provider_id' => $p->id]));
+});
+
+it('FR-R6 dunning events are isolated per tenant', function () {
+    assertTenantIsolation(DunningEvent::class, fn (Provider $p) => DunningEvent::factory()->create(['provider_id' => $p->id]));
 });

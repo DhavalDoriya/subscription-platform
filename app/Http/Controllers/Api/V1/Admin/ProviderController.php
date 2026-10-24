@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\UpdateProviderRequest;
 use App\Http\Resources\Admin\AdminProviderResource;
 use App\Models\Provider;
 use App\Services\Providers\ProviderLifecycle;
+use App\Services\Storefront\StorefrontService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -75,6 +76,14 @@ class ProviderController extends Controller
     public function suspend(Request $request, Provider $provider): JsonResponse
     {
         return $this->move($request, $provider, ProviderStatus::Suspended);
+    }
+
+    /** Moderation (FR-AD12): take a storefront offline without touching the provider's status or billing. */
+    public function unpublishStorefront(Request $request, Provider $provider, StorefrontService $storefront): JsonResponse
+    {
+        $storefront->unpublish($provider, $request->user('api'), 'storefront.moderated');
+
+        return ApiResponse::success(['published' => false]);
     }
 
     private function move(Request $request, Provider $provider, ProviderStatus $to, ?string $reason = null): JsonResponse

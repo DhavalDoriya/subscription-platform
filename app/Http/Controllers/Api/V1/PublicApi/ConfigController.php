@@ -20,6 +20,7 @@ class ConfigController extends Controller
             'allowed_intervals' => $settings->get('provider.allowed_intervals'),
             'min_price' => $settings->get('provider.min_price'),
             'max_price' => $settings->get('provider.max_price'),
+            'stripe_publishable_key' => $settings->get('stripe.publishable_key'),
             'tax_available' => (bool) $settings->get('stripe.tax_enabled'),
         ]);
     }
