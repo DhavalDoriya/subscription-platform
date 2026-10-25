@@ -30,6 +30,7 @@ class Invoice extends Model
             'paid_at' => 'datetime',
             'first_failed_at' => 'datetime',
             'next_retry_at' => 'datetime',
+            'receipt_sent_at' => 'datetime',
             'stripe_event_at' => 'integer',
         ];
     }

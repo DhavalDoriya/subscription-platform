@@ -10,16 +10,20 @@ use App\Http\Requests\Provider\UpdateOwnProviderRequest;
 use App\Http\Resources\ProviderResource;
 use App\Models\Provider;
 use App\Models\ProviderUser;
+use App\Models\User;
+use App\Services\Mail\AdminAlerts;
+use App\Services\Mail\TemplateMail;
 use App\Services\Providers\CurrentProvider;
 use App\Services\Settings\SettingsService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class ProviderController extends Controller
 {
-    public function register(RegisterProviderRequest $request, SettingsService $settings): JsonResponse
+    public function register(RegisterProviderRequest $request, SettingsService $settings, TemplateMail $mail, AdminAlerts $alerts): JsonResponse
     {
         $user = $request->user('api');
 
@@ -45,7 +49,31 @@ class ProviderController extends Controller
             return $provider;
         });
 
+        $this->notifyRegistered($mail, $provider, $user);
+
+        if ($provider->status === ProviderStatus::Pending) {
+            $alerts->send('admin.provider_pending', ['provider.name' => $provider->name, 'user.name' => $user->name, 'admin_url' => rtrim((string) config('app.frontend_url'), '/').'/admin/providers']);
+        }
+
         return ApiResponse::created(new ProviderResource($provider));
+    }
+
+    /** FR-E1: an acknowledgement while the provider waits for approval, or the welcome when it was approved on the spot. */
+    private function notifyRegistered(TemplateMail $mail, Provider $provider, User $user): void
+    {
+        try {
+            $mail->send(
+                $provider->status === ProviderStatus::Approved ? 'provider.approved' : 'provider.registration_received',
+                $user->email,
+                [
+                    'user.name' => $user->name, 'provider.name' => $provider->name, 'platform.name' => config('app.name'),
+                    'dashboard_url' => rtrim((string) config('app.frontend_url'), '/').'/dashboard',
+                ],
+                $provider->id,
+            );
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     public function show(Request $request): JsonResponse

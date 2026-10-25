@@ -217,7 +217,7 @@ Priority: **P0** = MVP, **P1** = fast follow, **P2** = later.
 
 ### 4.8 Commission & Payouts (Phased)
 **v1 (P0 – foundation):**
-- FR-CM1 Global default commission: percent and/or fixed per transaction (admin setting).
+- FR-CM1 Global default commission: percent per transaction (admin rates with effective-from dates). Fixed amounts are not possible on Stripe subscriptions (`application_fee_percent` only) and are deferred with FR-CM5.
 - FR-CM2 Per-provider override (admin) and effective-from dates (history kept).
 - FR-CM3 Commission calculated and stored per payment (`commission_amount`, `rate_snapshot`) and applied as Stripe `application_fee`.
 - FR-CM4 Admin and provider can view commission per transaction and totals.

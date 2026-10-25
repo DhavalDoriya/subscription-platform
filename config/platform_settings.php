@@ -35,9 +35,6 @@ return [
     'stripe.publishable_key' => ['type' => 'string', 'default' => null, 'rules' => ['nullable', 'string', 'starts_with:pk_']],
     'stripe.tax_enabled' => ['type' => 'bool', 'default' => false],
 
-    // Placeholder until the commission rules of Phase 8 replace it: whole percent taken as application_fee_percent.
-    'commission.default_percent' => ['type' => 'int', 'default' => 0, 'rules' => ['integer', 'min:0', 'max:100']],
-
     // FR-E5: how the platform sends email. Driver `default` = the server's own MAIL_* configuration.
     'mail.driver' => ['type' => 'string', 'default' => 'default', 'rules' => ['string', 'in:default,smtp,ses,mailgun']],
     'mail.host' => ['type' => 'string', 'default' => null, 'rules' => ['nullable', 'string', 'max:255']],

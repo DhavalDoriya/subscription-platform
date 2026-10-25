@@ -63,8 +63,14 @@ interface StripeGateway
 
     public function detachPaymentMethod(string $accountId, string $paymentMethodId, string $idempotencyKey): void;
 
-    /** Refunds a charge (all of it when $amount is null). @return array{id: string, status: string} */
-    public function createRefund(string $accountId, string $paymentIntentId, ?int $amount, string $idempotencyKey, ?string $reason = null): array;
+    /** Refunds a charge (all of it when $amount is null); `$refundApplicationFee` gives back the matching part of the platform fee (FR-CM3). @return array{id: string, status: string} */
+    public function createRefund(string $accountId, string $paymentIntentId, ?int $amount, string $idempotencyKey, ?string $reason = null, bool $refundApplicationFee = false): array;
+
+    /**
+     * Gives the platform fee of a charge back to the connected account, e.g. after a lost dispute. The fee object lives on the
+     * platform account, so there is no connected-account header. Does nothing when the charge had no fee.
+     */
+    public function refundApplicationFeeForCharge(string $chargeId, string $idempotencyKey): void;
 
     /**
      * Charges an open invoice now with the customer's default payment method (our retry engine, FR-R7). A declined card

@@ -79,6 +79,10 @@ return [
         'price_archived' => 'This price is archived.',
     ],
 
+    'commission' => [
+        'rule_already_effective' => 'This rate has already taken effect. Add a newer rate instead of removing it.',
+    ],
+
     'dunning' => [
         'not_retryable' => 'This invoice cannot be retried: it is paid, or its subscription has ended or is paused.',
         'not_resolvable' => 'This invoice has no failed payment to resolve.',

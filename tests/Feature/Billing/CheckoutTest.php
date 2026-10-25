@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ProviderStatus;
+use App\Models\CommissionRule;
 use App\Models\Plan;
 use App\Models\Provider;
 use App\Models\ProviderCustomer;
@@ -68,11 +69,11 @@ it('FR-C1 creates the Stripe customer and subscription on the provider\'s connec
 it('FR-CM3 passes the platform fee percent to Stripe when one is configured', function () {
     [, , $price] = liveStorefront();
     customerSession();
-    app(SettingsService::class)->set('commission.default_percent', 10);
+    CommissionRule::factory()->create(['percent' => 10]);
 
     onStorefront('post', '/customer/subscriptions', ['price_id' => $price->id])->assertCreated();
 
-    expect(fakeStripe()->callsTo('createSubscription')[0]['params']['application_fee_percent'])->toBe(10);
+    expect(fakeStripe()->callsTo('createSubscription')[0]['params']['application_fee_percent'])->toEqual(10);
 });
 
 it('FR-C1 sends no fee while the commission is zero', function () {
@@ -215,4 +216,16 @@ it('FR-AD3 a blocked customer cannot check out', function () {
     $user->forceFill(['blocked_at' => now()])->save();
 
     onStorefront('post', '/customer/subscriptions', ['price_id' => $price->id])->assertForbidden();
+});
+
+it('FR-CM3 sells the subscription at the rate that applies to the provider today and keeps it on the subscription', function () {
+    [$provider, , $price] = liveStorefront();
+    customerSession();
+    CommissionRule::factory()->create(['percent' => 10]);
+    CommissionRule::factory()->create(['provider_id' => $provider->id, 'percent' => 7.5]);
+
+    onStorefront('post', '/customer/subscriptions', ['price_id' => $price->id])->assertCreated();
+
+    expect(fakeStripe()->callsTo('createSubscription')[0]['params']['application_fee_percent'])->toEqual(7.5)
+        ->and(Subscription::sole()->application_fee_percent)->toBe('7.50');
 });

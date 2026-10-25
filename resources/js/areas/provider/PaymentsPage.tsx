@@ -5,7 +5,7 @@ import { FilterSelect } from '@/components/FilterSelect';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
-import { paymentStatuses, type Payment } from '@/lib/billing';
+import { disputeStatusLabels, paymentStatuses, type Payment } from '@/lib/billing';
 import { formatDate } from '@/lib/format';
 import { formatMoney } from '@/lib/money';
 import { useListState } from '@/lib/useListState';
@@ -33,6 +33,24 @@ export function PaymentsPage() {
             ),
         },
         {
+            id: 'fee',
+            header: 'Platform fee',
+            cell: (p) =>
+                p.commission ? (
+                    <>
+                        <span className="block">{formatMoney(p.commission.net_fee, p.currency)}</span>
+                        <span className="block text-xs text-muted-foreground">{p.commission.rate_percent}%</span>
+                    </>
+                ) : (
+                    '—'
+                ),
+        },
+        {
+            id: 'net',
+            header: 'You receive',
+            cell: (p) => (p.status === 'failed' ? '—' : formatMoney(p.commission ? p.commission.provider_net : p.amount - p.amount_refunded, p.currency)),
+        },
+        {
             id: 'status',
             header: 'Status',
             sortKey: 'status',
@@ -40,6 +58,14 @@ export function PaymentsPage() {
                 <>
                     <PaymentStatusBadge status={p.status} />
                     {p.failure_code && <span className="mt-1 block text-xs text-destructive">{p.failure_code}</span>}
+                    {p.dispute && (
+                        <span className="mt-1 block text-xs text-destructive">
+                            {disputeStatusLabels[p.dispute.status] ?? 'Dispute'}
+                            {p.dispute.evidence_due_by &&
+                                ['needs_response', 'warning_needs_response'].includes(p.dispute.status) &&
+                                ` (by ${formatDate(p.dispute.evidence_due_by)})`}
+                        </span>
+                    )}
                 </>
             ),
         },

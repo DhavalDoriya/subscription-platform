@@ -5,10 +5,17 @@ namespace App\Services\Stripe\Webhooks;
 use App\Models\Payment;
 use App\Models\Provider;
 use App\Models\Refund;
+use App\Services\Commission\CommissionRecorder;
+use App\Support\Tenancy\TenantContext;
 
 /** charge.refunded: sets the refunded total from Stripe (never adds to it), so replays and our own refunds agree. */
 class ChargeRefundedEventHandler extends ConnectEventHandler
 {
+    public function __construct(TenantContext $tenancy, private CommissionRecorder $commissions)
+    {
+        parent::__construct($tenancy);
+    }
+
     protected function process(Provider $provider, array $object, int $at, string $type): void
     {
         $payment = Payment::where('stripe_charge_id', $object['id'] ?? '')->first()
@@ -40,5 +47,7 @@ class ChargeRefundedEventHandler extends ConnectEventHandler
                 'status' => $refund['status'] ?? 'succeeded',
             ]);
         }
+
+        $this->commissions->adjust($payment);
     }
 }

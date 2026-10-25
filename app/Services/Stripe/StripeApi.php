@@ -122,14 +122,23 @@ class StripeApi implements StripeGateway
         $this->client()->paymentMethods->detach($paymentMethodId, null, $this->opts($accountId, $idempotencyKey));
     }
 
-    public function createRefund(string $accountId, string $paymentIntentId, ?int $amount, string $idempotencyKey, ?string $reason = null): array
+    public function createRefund(string $accountId, string $paymentIntentId, ?int $amount, string $idempotencyKey, ?string $reason = null, bool $refundApplicationFee = false): array
     {
         $refund = $this->client()->refunds->create(
-            array_filter(['payment_intent' => $paymentIntentId, 'amount' => $amount, 'reason' => $reason], fn ($v) => $v !== null),
+            array_filter(['payment_intent' => $paymentIntentId, 'amount' => $amount, 'reason' => $reason, 'refund_application_fee' => $refundApplicationFee ?: null], fn ($v) => $v !== null),
             $this->opts($accountId, $idempotencyKey),
         );
 
         return ['id' => $refund->id, 'status' => $refund->status];
+    }
+
+    public function refundApplicationFeeForCharge(string $chargeId, string $idempotencyKey): void
+    {
+        foreach ($this->client()->applicationFees->all(['charge' => $chargeId, 'limit' => 1])->data as $fee) {
+            if (! $fee->refunded) {
+                $this->client()->applicationFees->createRefund($fee->id, [], ['idempotency_key' => $idempotencyKey]);
+            }
+        }
     }
 
     public function payInvoice(string $accountId, string $invoiceId, string $idempotencyKey): array

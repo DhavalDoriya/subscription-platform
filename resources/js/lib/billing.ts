@@ -91,6 +91,10 @@ export interface Payment {
     failure_message: string | null;
     paid_at: string | null;
     created_at: string;
+    /** The platform fee on this payment; null when no fee was taken. */
+    commission: { rate_percent: string; amount: number; refunded: number; net_fee: number; provider_net: number } | null;
+    /** A chargeback against this payment, if any. */
+    dispute?: { status: string; amount: number; reason: string | null; evidence_due_by: string | null } | null;
     refunds: Refund[];
 }
 
@@ -146,6 +150,17 @@ export const dunningEventLabels: Record<string, string> = {
     paused: 'Subscription paused',
     recovered: 'Payment recovered',
     resolved: 'Marked resolved',
+};
+
+export const disputeStatusLabels: Record<string, string> = {
+    needs_response: 'Dispute: respond by the deadline',
+    under_review: 'Dispute under review',
+    won: 'Dispute won',
+    lost: 'Dispute lost',
+    warning_needs_response: 'Early warning: respond',
+    warning_under_review: 'Early warning under review',
+    warning_closed: 'Early warning closed',
+    charge_refunded: 'Dispute closed: refunded',
 };
 
 export const paymentStatuses: Record<Payment['status'], { label: string; tone: Tone }> = {

@@ -9,6 +9,7 @@ use App\Models\Provider;
 use App\Models\ProviderCustomer;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Commission\CommissionResolver;
 use App\Services\Settings\SettingsService;
 use App\Services\Stripe\StripeGateway;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class CheckoutService
 {
-    public function __construct(private StripeGateway $stripe, private SettingsService $settings, private SubscriptionSync $sync) {}
+    public function __construct(private StripeGateway $stripe, private SettingsService $settings, private SubscriptionSync $sync, private CommissionResolver $commission) {}
 
     /** @return array{subscription: Subscription, client_secret: ?string, client_secret_type: ?string} */
     public function start(User $user, Provider $provider, Price $price): array
@@ -45,6 +46,7 @@ class CheckoutService
                 'currency' => $price->currency,
                 'interval' => $price->interval,
                 'interval_count' => $price->interval_count,
+                'application_fee_percent' => $this->commission->rateFor($provider), // FR-CM3: fixed for this subscription from today's rate
             ]);
 
             $state = $this->stripe->createSubscription($provider->stripe_account_id, $this->subscriptionParams($provider, $link, $subscription, $price), "subscription-{$subscription->id}-create");
@@ -109,8 +111,8 @@ class CheckoutService
             $params['trial_period_days'] = $price->plan->trial_days;
         }
 
-        if ($fee = (int) $this->settings->get('commission.default_percent')) {
-            $params['application_fee_percent'] = $fee;
+        if ((float) $subscription->application_fee_percent > 0) {
+            $params['application_fee_percent'] = (float) $subscription->application_fee_percent;
         }
 
         return $params;

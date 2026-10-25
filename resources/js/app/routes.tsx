@@ -14,6 +14,10 @@ import { ProvidersPage } from '@/areas/admin/ProvidersPage';
 import { SettingsPage } from '@/areas/admin/SettingsPage';
 import { SubscriptionsPage } from '@/areas/admin/SubscriptionsPage';
 import { PlansAdminPage } from '@/areas/admin/PlansAdminPage';
+import { ReportsPage as AdminReportsPage } from '@/areas/admin/ReportsPage';
+import { ReportsPage as ProviderReportsPage } from '@/areas/provider/ReportsPage';
+import { CommissionRatesPage } from '@/areas/admin/CommissionRatesPage';
+import { CommissionReportPage } from '@/areas/admin/CommissionReportPage';
 import { EmailLogsPage } from '@/areas/admin/EmailLogsPage';
 import { EmailTemplateEditPage } from '@/areas/admin/EmailTemplateEditPage';
 import { EmailTemplatesPage } from '@/areas/admin/EmailTemplatesPage';
@@ -80,6 +84,9 @@ export function AppRoutes() {
                 <Route path="plans" element={<PlansAdminPage />} />
                 <Route path="subscriptions" element={<SubscriptionsPage />} />
                 <Route path="invoices" element={<InvoicesPage />} />
+                <Route path="reports" element={<AdminReportsPage />} />
+                <Route path="commission" element={<CommissionRatesPage />} />
+                <Route path="commission-report" element={<CommissionReportPage />} />
                 <Route path="email-templates" element={<EmailTemplatesPage />} />
                 <Route path="email-templates/:id" element={<EmailTemplateEditPage />} />
                 <Route path="email-log" element={<EmailLogsPage />} />
@@ -106,6 +113,7 @@ export function AppRoutes() {
                 <Route index element={<ProviderOverviewPage />} />
                 <Route path="subscribers" element={<SubscribersPage />} />
                 <Route path="payments" element={<PaymentsPage />} />
+                <Route path="reports" element={<ProviderReportsPage />} />
                 <Route path="invoices" element={<ProviderInvoicesPage />} />
                 <Route path="plans" element={<PlansPage />} />
                 <Route path="storefront" element={<StorefrontEditorPage />} />

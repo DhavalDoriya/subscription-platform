@@ -2,10 +2,9 @@
 
 use App\Models\RefreshToken;
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Services\Mail\TemplateMail;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 function signedIn(array $attributes = []): array
@@ -35,7 +34,6 @@ it('FR-A8 updates the name without touching verification', function () {
 });
 
 it('FR-A8 changing the email needs the current password, unverifies it and sends a new link', function () {
-    Notification::fake();
     [$user, $access] = signedIn();
 
     $this->withToken($access)->patchJson('/api/v1/auth/profile', ['email' => 'new@example.com'])
@@ -48,7 +46,8 @@ it('FR-A8 changing the email needs the current password, unverifies it and sends
         ->assertOk()->assertJsonPath('data.email', 'new@example.com')->assertJsonPath('data.email_verified_at', null);
 
     expect($user->fresh()->email_verified_at)->toBeNull();
-    Notification::assertSentTo($user->fresh(), VerifyEmail::class);
+    $sent = app(TemplateMail::class)->sent;
+    expect($sent)->toHaveCount(1)->and($sent[0]['template'])->toBe('auth.verify_email')->and($sent[0]['to'])->toBe('new@example.com');
 });
 
 it('FR-A8 rejects an email that another account uses', function () {

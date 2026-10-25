@@ -10,6 +10,7 @@ export interface Overview {
     churned_30d: number;
     failed_payments_30d: number;
     upcoming_renewals_7d: number;
+    commission: { rate_percent: string; fee_30d: number };
     dunning: { open_invoices: number; open_amount: number; at_risk_mrr: number; recovered_30d: number; lost_30d: number; recovery_rate: number | null };
 }
 

@@ -23,7 +23,14 @@ const paid = {
     created_at: '2026-10-01T00:00:00Z',
     refunds: [],
 };
-const partly = { ...paid, id: 'pay2', status: 'partially_refunded', amount_refunded: 400, refundable: 1500 };
+const partly = {
+    ...paid,
+    id: 'pay2',
+    status: 'partially_refunded',
+    amount_refunded: 400,
+    refundable: 1500,
+    commission: { rate_percent: '10.00', amount: 190, refunded: 40, net_fee: 150, provider_net: 1350 },
+};
 const failed = { ...paid, id: 'pay3', status: 'failed', refundable: 1900, failure_code: 'insufficient_funds' };
 const requests: URL[] = [];
 
@@ -72,6 +79,32 @@ describe('FR-PD4 provider payments page', () => {
 
         expect(screen.getByRole('row', { name: /Partly refunded/ })).toHaveTextContent('$4.00 refunded');
         expect(screen.getByRole('row', { name: /Failed/ })).toHaveTextContent('insufficient_funds');
+    });
+
+    it('FR-CM4 shows the platform fee and what the provider receives, with and without a fee', async () => {
+        renderWithProviders(<PaymentsPage />);
+        await screen.findAllByRole('row', { name: /Paid/ });
+
+        const withFee = screen.getByRole('row', { name: /Partly refunded/ });
+        expect(withFee).toHaveTextContent('$1.50');
+        expect(withFee).toHaveTextContent('10.00%');
+        expect(withFee).toHaveTextContent('$13.50');
+        expect(screen.getByRole('row', { name: /Failed/ })).not.toHaveTextContent('$19.00 ');
+        expect(within(screen.getByRole('row', { name: /^.*Paid/ })).getAllByText('—').length).toBeGreaterThan(0);
+    });
+
+    it('FR-CM3 flags a payment that is being disputed, with the deadline to respond', async () => {
+        server.use(
+            http.get(url('/provider/payments'), () =>
+                HttpResponse.json({
+                    data: [{ ...paid, dispute: { status: 'needs_response', amount: 1900, reason: 'fraudulent', evidence_due_by: '2026-10-20T00:00:00Z' } }],
+                    meta: meta(1),
+                }),
+            ),
+        );
+        renderWithProviders(<PaymentsPage />);
+
+        expect(await screen.findByText(/Dispute: respond by the deadline/)).toHaveTextContent('by Oct 20, 2026');
     });
 
     it('offers a refund only where something can still be refunded', async () => {

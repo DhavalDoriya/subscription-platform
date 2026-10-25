@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // Connected account type for new providers: `express` (target) or `standard` (needed while the platform Stripe account is in India).
+    'stripe' => [
+        'account_type' => env('STRIPE_ACCOUNT_TYPE', 'express'),
+    ],
+
 ];

@@ -64,19 +64,29 @@ class StripeConnectController extends Controller
             throw new ApiException(__('api.stripe.not_connected'), 409, 'stripe_not_connected');
         }
 
-        return ApiResponse::success(['url' => $this->stripe->createLoginLink($provider->stripe_account_id)]);
+        // Standard accounts own their dashboard and have no login link.
+        $url = $this->accountType() === 'standard' ? 'https://dashboard.stripe.com' : $this->stripe->createLoginLink($provider->stripe_account_id);
+
+        return ApiResponse::success(['url' => $url]);
     }
 
     /** @return array<string, mixed> */
     private function accountParams(Provider $provider): array
     {
+        $type = $this->accountType();
+
         return [
-            'type' => 'express',
+            'type' => $type,
             'country' => $provider->country,
             'email' => $provider->support_email,
             'business_profile' => ['name' => $provider->name, 'support_email' => $provider->support_email],
-            'capabilities' => ['card_payments' => ['requested' => true], 'transfers' => ['requested' => true]],
             'metadata' => ['provider_id' => $provider->id],
-        ];
+        ] + ($type === 'express' ? ['capabilities' => ['card_payments' => ['requested' => true], 'transfers' => ['requested' => true]]] : []);
+    }
+
+    /** `express` (target) or `standard`: Stripe refuses Express for platforms registered in India, so those run on Standard until the platform account moves. */
+    private function accountType(): string
+    {
+        return config('services.stripe.account_type', 'express');
     }
 }

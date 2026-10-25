@@ -1,9 +1,8 @@
 <?php
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Services\Mail\TemplateMail;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 function validRegistration(array $overrides = []): array
@@ -17,8 +16,6 @@ function validRegistration(array $overrides = []): array
 }
 
 it('FR-A1 registers a customer, returns tokens and a refresh cookie', function () {
-    Notification::fake();
-
     $response = $this->postJson('/api/v1/auth/register', validRegistration())
         ->assertCreated()
         ->assertJsonStructure(['data' => ['access_token', 'token_type', 'expires_in', 'user' => ['id', 'name', 'email', 'roles']]])
@@ -34,7 +31,7 @@ it('FR-A1 registers a customer, returns tokens and a refresh cookie', function (
     $user = User::where('email', 'jane@example.com')->first();
     expect(Str::isUuid($user->id))->toBeTrue()
         ->and(Hash::check('Password123!', $user->password))->toBeTrue();
-    Notification::assertSentTo($user, VerifyEmail::class);
+    expect(collect(app(TemplateMail::class)->sent)->pluck('template')->all())->toBe(['auth.verify_email', 'auth.welcome']);
 });
 
 it('FR-A1 rejects duplicate emails and weak passwords', function () {

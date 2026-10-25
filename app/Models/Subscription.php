@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /** A customer's subscription to one plan of one provider; a mirror of the Stripe subscription (PRD FR-PM6). */
-#[Fillable(['provider_id', 'provider_customer_id', 'plan_id', 'price_id', 'status', 'amount', 'currency', 'interval', 'interval_count', 'cancel_at_period_end', 'current_period_start', 'current_period_end', 'trial_ends_at', 'canceled_at', 'ended_at', 'paused_at', 'pause_reason', 'grace_ends_at', 'stripe_subscription_id', 'stripe_event_at'])]
+#[Fillable(['provider_id', 'provider_customer_id', 'plan_id', 'price_id', 'status', 'amount', 'currency', 'interval', 'interval_count', 'cancel_at_period_end', 'current_period_start', 'current_period_end', 'trial_ends_at', 'canceled_at', 'ended_at', 'paused_at', 'pause_reason', 'grace_ends_at', 'stripe_subscription_id', 'stripe_event_at', 'application_fee_percent'])]
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */
@@ -26,6 +26,7 @@ class Subscription extends Model
         return [
             'status' => SubscriptionStatus::class,
             'amount' => 'integer',
+            'application_fee_percent' => 'decimal:2',
             'interval_count' => 'integer',
             'cancel_at_period_end' => 'boolean',
             'current_period_start' => 'datetime',
@@ -33,6 +34,8 @@ class Subscription extends Model
             'trial_ends_at' => 'datetime',
             'canceled_at' => 'datetime',
             'ended_at' => 'datetime',
+            'trial_reminder_for' => 'datetime',
+            'renewal_reminder_for' => 'datetime',
             'paused_at' => 'datetime',
             'grace_ends_at' => 'datetime',
             'stripe_event_at' => 'integer',

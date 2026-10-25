@@ -171,11 +171,16 @@ class FakeStripeGateway implements StripeGateway
         $this->record('detachPaymentMethod', ['account' => $accountId, 'payment_method' => $paymentMethodId, 'idempotency_key' => $idempotencyKey]);
     }
 
-    public function createRefund(string $accountId, string $paymentIntentId, ?int $amount, string $idempotencyKey, ?string $reason = null): array
+    public function createRefund(string $accountId, string $paymentIntentId, ?int $amount, string $idempotencyKey, ?string $reason = null, bool $refundApplicationFee = false): array
     {
-        $this->record('createRefund', ['account' => $accountId, 'payment_intent' => $paymentIntentId, 'amount' => $amount, 'reason' => $reason, 'idempotency_key' => $idempotencyKey]);
+        $this->record('createRefund', ['account' => $accountId, 'payment_intent' => $paymentIntentId, 'amount' => $amount, 'reason' => $reason, 'refund_application_fee' => $refundApplicationFee, 'idempotency_key' => $idempotencyKey]);
 
         return ['id' => 're_fake'.++$this->sequence, 'status' => 'succeeded'];
+    }
+
+    public function refundApplicationFeeForCharge(string $chargeId, string $idempotencyKey): void
+    {
+        $this->record('refundApplicationFeeForCharge', ['charge' => $chargeId, 'idempotency_key' => $idempotencyKey]);
     }
 
     public function payInvoice(string $accountId, string $invoiceId, string $idempotencyKey): array

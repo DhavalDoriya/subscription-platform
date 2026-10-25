@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Stripe\Webhooks\AccountUpdatedHandler;
+use App\Services\Stripe\Webhooks\ChargeDisputeEventHandler;
 use App\Services\Stripe\Webhooks\ChargeRefundedEventHandler;
 use App\Services\Stripe\Webhooks\InvoiceEventHandler;
 use App\Services\Stripe\Webhooks\PaymentIntentEventHandler;
@@ -30,6 +31,9 @@ return [
         'payment_intent.succeeded' => PaymentIntentEventHandler::class,
         'payment_intent.payment_failed' => PaymentIntentEventHandler::class,
         'charge.refunded' => ChargeRefundedEventHandler::class,
+        'charge.dispute.created' => ChargeDisputeEventHandler::class,
+        'charge.dispute.updated' => ChargeDisputeEventHandler::class,
+        'charge.dispute.closed' => ChargeDisputeEventHandler::class,
 
         'payment_method.attached' => PaymentMethodEventHandler::class,
         'payment_method.updated' => PaymentMethodEventHandler::class,

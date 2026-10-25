@@ -37,7 +37,7 @@ class BillingController extends Controller
 
     public function payments(ListPaymentsRequest $request): JsonResponse
     {
-        $payments = Payment::query()->with('refunds')
+        $payments = Payment::query()->with(['refunds', 'commission', 'dispute'])
             ->when($request->validated('status'), fn ($query, $status) => $query->where('status', $status))
             ->orderBy($request->sortColumn(ListPaymentsRequest::SORTABLE, 'created_at'), $request->validated('sort') ? $request->sortDirection() : 'desc')
             ->paginate($request->perPage());

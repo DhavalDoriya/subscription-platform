@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Mail\AuthMailer;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -28,6 +29,16 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     public function providerLinks(): HasMany
     {
         return $this->hasMany(ProviderCustomer::class);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        app(AuthMailer::class)->verifyEmail($this);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        app(AuthMailer::class)->passwordReset($this, $token);
     }
 
     public function isBlocked(): bool

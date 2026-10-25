@@ -1,5 +1,8 @@
 import {
     CreditCard,
+    BarChart3,
+    Percent,
+    Receipt,
     FileText,
     Layers,
     Mail,
@@ -44,6 +47,9 @@ export const adminNav: NavGroup[] = [
         items: [
             { label: 'Subscriptions', to: '/admin/subscriptions', icon: CreditCard },
             { label: 'Invoices', to: '/admin/invoices', icon: FileText },
+            { label: 'Reports', to: '/admin/reports', icon: BarChart3 },
+            { label: 'Commission rates', to: '/admin/commission', icon: Percent },
+            { label: 'Commission report', to: '/admin/commission-report', icon: Receipt },
         ],
     },
     {

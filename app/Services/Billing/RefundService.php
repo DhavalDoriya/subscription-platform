@@ -6,17 +6,20 @@ use App\Exceptions\ApiException;
 use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\User;
+use App\Services\Commission\CommissionRecorder;
+use App\Services\Mail\TemplateMail;
 use App\Services\Stripe\StripeGateway;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /** Full and partial refunds by a provider or an admin (FR-C10). Stripe is asked first; if it refuses, nothing is kept. */
 class RefundService
 {
-    public function __construct(private StripeGateway $stripe) {}
+    public function __construct(private StripeGateway $stripe, private TemplateMail $mail, private CommissionRecorder $commissions) {}
 
     public function refund(Payment $payment, ?int $amount, ?string $reason, User $actor): Refund
     {
-        return DB::transaction(function () use ($payment, $amount, $reason, $actor) {
+        $refund = DB::transaction(function () use ($payment, $amount, $reason, $actor) {
             // Lock the row so two simultaneous refunds cannot both pass the "enough left" check.
             $payment = Payment::withoutGlobalScopes()->with('provider')->lockForUpdate()->findOrFail($payment->id);
 
@@ -40,16 +43,44 @@ class RefundService
                 'status' => 'pending',
             ]);
 
-            $result = $this->stripe->createRefund($payment->provider->stripe_account_id, $payment->stripe_payment_intent_id, $amount, "refund-{$refund->id}", $reason);
+            $result = $this->stripe->createRefund($payment->provider->stripe_account_id, $payment->stripe_payment_intent_id, $amount, "refund-{$refund->id}", $reason, $this->commissions->hasCommission($payment));
 
             $refund->update(['stripe_refund_id' => $result['id'], 'status' => $result['status']]);
 
             $total = $payment->amount_refunded + $amount;
             $payment->update(['amount_refunded' => $total, 'status' => $total >= $payment->amount ? 'refunded' : 'partially_refunded']);
 
+            $this->commissions->adjust($payment);
+
             activity()->performedOn($refund)->causedBy($actor)->withProperties(['payment_id' => $payment->id, 'amount' => $amount])->log('refund.created');
 
             return $refund;
         });
+
+        $this->notifyCustomer($refund);
+
+        return $refund;
+    }
+
+    /** FR-E1: confirm the refund by email. A mail failure never undoes the refund. */
+    private function notifyCustomer(Refund $refund): void
+    {
+        $payment = Payment::withoutGlobalScopes()->with(['provider', 'subscription.providerCustomer.user'])->find($refund->payment_id);
+        $user = $payment?->subscription?->providerCustomer?->user;
+
+        if (! $user) {
+            return;
+        }
+
+        try {
+            $this->mail->send('customer.refund_issued', $user->email, [
+                'customer.name' => $user->name,
+                'provider.name' => $payment->provider->name,
+                'amount' => number_format($refund->amount / 100, 2, '.', '').' '.strtoupper($refund->currency),
+                'invoice_url' => rtrim((string) config('app.frontend_url'), '/').'/account',
+            ], $payment->provider_id);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 }

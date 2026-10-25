@@ -33,8 +33,9 @@ final class ApiResponse
 
     /**
      * @param  Closure|class-string<JsonResource>|null  $transform  maps each item to an array
+     * @param  array<string, mixed>  $extra  extra top-level keys next to data and meta, e.g. report totals
      */
-    public static function paginated(LengthAwarePaginator $paginator, Closure|string|null $transform = null): JsonResponse
+    public static function paginated(LengthAwarePaginator $paginator, Closure|string|null $transform = null, array $extra = []): JsonResponse
     {
         $items = $paginator->getCollection();
 
@@ -52,7 +53,7 @@ final class ApiResponse
                 'total' => $paginator->total(),
                 'last_page' => $paginator->lastPage(),
             ],
-        ]);
+        ] + $extra);
     }
 
     public static function error(string $message, int $status, ?array $errors = null, ?string $code = null, array $headers = []): JsonResponse

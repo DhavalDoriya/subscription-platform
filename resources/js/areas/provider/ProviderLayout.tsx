@@ -1,4 +1,4 @@
-import { CreditCard, Globe, Layers, LayoutDashboard, LogOut, Receipt, Settings, Users } from 'lucide-react';
+import { BarChart3, CreditCard, Globe, Layers, LayoutDashboard, LogOut, Receipt, Settings, Users } from 'lucide-react';
 import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ const nav = [
     { label: 'Overview', to: '/dashboard', icon: LayoutDashboard, end: true },
     { label: 'Subscribers', to: '/dashboard/subscribers', icon: Users, end: false },
     { label: 'Payments', to: '/dashboard/payments', icon: CreditCard, end: false },
+    { label: 'Reports', to: '/dashboard/reports', icon: BarChart3, end: false },
     { label: 'Invoices', to: '/dashboard/invoices', icon: Receipt, end: false },
     { label: 'Plans', to: '/dashboard/plans', icon: Layers, end: false },
     { label: 'Storefront', to: '/dashboard/storefront', icon: Globe, end: false },
@@ -32,7 +33,7 @@ export function ProviderLayout() {
 
     return (
         <div className="grid min-h-screen lg:grid-cols-[15rem_minmax(0,1fr)]">
-            <aside className="bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:h-screen">
+            <aside className="bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
                 <div className="px-6 py-6 text-lg font-semibold text-white">{provider?.name ?? <Skeleton className="h-6 w-32" />}</div>
                 <nav aria-label="Provider" className="px-3 pb-4">
                     <ul>

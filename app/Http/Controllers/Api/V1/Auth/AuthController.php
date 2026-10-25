@@ -8,19 +8,21 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\Auth\AuthService;
+use App\Services\Mail\AuthMailer;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    public function __construct(private AuthService $auth) {}
+    public function __construct(private AuthService $auth, private AuthMailer $mails) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = User::create($request->validated());
         $user->assignRole('customer');
         $user->sendEmailVerificationNotification();
+        $this->mails->welcome($user);
 
         return $this->auth->startSession($user, $request, 201);
     }

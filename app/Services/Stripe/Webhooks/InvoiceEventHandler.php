@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Provider;
 use App\Models\ProviderCustomer;
 use App\Models\Subscription;
+use App\Services\Billing\SubscriptionNotifier;
 use App\Services\Dunning\DunningService;
 use App\Services\Stripe\StripeGateway;
 use App\Support\Tenancy\TenantContext;
@@ -15,7 +16,7 @@ use Illuminate\Support\Carbon;
 /** invoice.created/finalized/paid/payment_failed/voided/...: one local row per Stripe invoice (FR-C6). */
 class InvoiceEventHandler extends ConnectEventHandler
 {
-    public function __construct(TenantContext $tenancy, private DunningService $dunning, private StripeGateway $stripe)
+    public function __construct(TenantContext $tenancy, private DunningService $dunning, private StripeGateway $stripe, private SubscriptionNotifier $notifier)
     {
         parent::__construct($tenancy);
     }
@@ -69,6 +70,7 @@ class InvoiceEventHandler extends ConnectEventHandler
     {
         if ($type === 'invoice.paid') {
             $this->dunning->markRecovered($invoice);
+            $this->notifier->receipt($invoice);
 
             return;
         }

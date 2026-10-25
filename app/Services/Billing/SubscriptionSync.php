@@ -36,6 +36,11 @@ class SubscriptionSync
             $status = SubscriptionStatus::Expired;
         }
 
+        $before = [
+            'status' => $subscription->status, 'cancel_at_period_end' => (bool) $subscription->cancel_at_period_end,
+            'price_id' => $subscription->price_id, 'plan_name' => $subscription->plan?->name,
+        ];
+
         $subscription->forceFill([
             'status' => $status,
             'stripe_subscription_id' => $state['id'] ?: $subscription->stripe_subscription_id,
@@ -53,6 +58,8 @@ class SubscriptionSync
 
         $this->followPrice($subscription, $state['price_id']);
         $subscription->save();
+
+        app(SubscriptionNotifier::class)->changed($subscription, $before);
 
         return true;
     }

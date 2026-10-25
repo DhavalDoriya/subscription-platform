@@ -102,11 +102,6 @@ export const settingGroups: SettingGroup[] = [
         ],
     },
     {
-        title: 'Commission',
-        description: 'Platform fee taken from each subscription payment. Per-provider rules arrive in a later phase.',
-        fields: [{ key: 'commission.default_percent', label: 'Default commission (%)', kind: 'number' }],
-    },
-    {
         title: 'Mail',
         description:
             'How the platform sends email. Leave the driver on default to use the server configuration. Only super admins can replace passwords and keys; saved ones are never shown.',

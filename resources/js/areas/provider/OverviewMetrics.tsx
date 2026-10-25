@@ -38,6 +38,8 @@ export function OverviewMetrics() {
         ['Churned in 30 days', String(data.churned_30d)],
         ['Failed payments (30 days)', String(data.failed_payments_30d)],
         ['Renewals in 7 days', String(data.upcoming_renewals_7d)],
+        ['Platform fee rate', `${data.commission.rate_percent}%`],
+        ['Platform fees (30 days)', formatMoney(data.commission.fee_30d, data.currency)],
     ];
 
     return (

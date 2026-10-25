@@ -57,6 +57,9 @@ return [
     // Providers live on <slug>.<base_domain>; reserved subdomains and the bare domain are the main app.
     'base_domain' => env('APP_BASE_DOMAIN', 'platform.test'),
 
+    // Serve the Scramble API docs at /docs/api in production (staging only).
+    'api_docs' => (bool) env('API_DOCS', false),
+
     'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
 
     /*

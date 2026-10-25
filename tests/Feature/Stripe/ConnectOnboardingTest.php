@@ -104,3 +104,21 @@ it('FR-AD7 shows admins whether Stripe is configured, the mode, and the webhook 
     app('auth')->forgetGuards();
     $this->getJson('/api/v1/admin/stripe')->assertJsonPath('data.mode', 'live');
 });
+
+it('FR-PM1 creates a Standard account when the platform is configured for it (e.g. an Indian platform account), without Express-only capabilities', function () {
+    config(['services.stripe.account_type' => 'standard']);
+    stripeOwner();
+
+    $this->postJson('/api/v1/provider/stripe/onboarding')->assertOk();
+
+    $params = fakeStripe()->callsTo('createExpressAccount')[0]['params'];
+    expect($params['type'])->toBe('standard')->and($params)->not->toHaveKey('capabilities');
+});
+
+it('FR-PD5 sends a Standard provider to the Stripe dashboard instead of an Express login link', function () {
+    config(['services.stripe.account_type' => 'standard']);
+    stripeOwner(['stripe_account_id' => 'acct_ok', 'stripe_status' => 'enabled']);
+
+    $this->postJson('/api/v1/provider/stripe/dashboard')->assertOk()->assertJsonPath('data.url', 'https://dashboard.stripe.com');
+    expect(fakeStripe()->callsTo('createLoginLink'))->toBeEmpty();
+});

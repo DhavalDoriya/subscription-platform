@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Models\Provider;
 use App\Models\Refund;
 use App\Models\User;
+use App\Services\Mail\TemplateMail;
 use App\Services\Stripe\StripeGateway;
 use Tests\Support\FakeStripeGateway;
 
@@ -82,7 +83,7 @@ it('FR-C10 leaves nothing recorded when Stripe refuses the refund', function () 
     [, , $payment] = providerWithPayment();
     $this->app->instance(StripeGateway::class, new class extends FakeStripeGateway
     {
-        public function createRefund(string $accountId, string $paymentIntentId, ?int $amount, string $idempotencyKey, ?string $reason = null): array
+        public function createRefund(string $accountId, string $paymentIntentId, ?int $amount, string $idempotencyKey, ?string $reason = null, bool $refundApplicationFee = false): array
         {
             throw new RuntimeException('charge_already_refunded');
         }
@@ -111,4 +112,17 @@ it('FR-C10 customers cannot refund anything', function () {
     $this->postJson("/api/v1/provider/payments/{$payment->id}/refund")->assertStatus(404);
     $this->postJson("/api/v1/admin/payments/{$payment->id}/refund")->assertForbidden();
     expect(Refund::count())->toBe(0);
+});
+
+it('FR-E1 mails the customer when a refund is issued', function () {
+    [, $provider, $payment] = providerWithPayment();
+
+    $this->postJson("/api/v1/provider/payments/{$payment->id}/refund", ['amount' => 500])->assertCreated();
+
+    $sent = app(TemplateMail::class)->sent;
+    expect($sent)->toHaveCount(1)
+        ->and($sent[0]['template'])->toBe('customer.refund_issued')
+        ->and($sent[0]['to'])->toBe($payment->subscription->providerCustomer->user->email)
+        ->and($sent[0]['variables']['amount'])->toBe('5.00 USD')
+        ->and($sent[0]['provider_id'])->toBe($provider->id);
 });

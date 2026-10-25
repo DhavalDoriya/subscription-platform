@@ -2,27 +2,24 @@
 
 use App\Models\RefreshToken;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Services\Mail\TemplateMail;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 
 it('FR-A3 sends a reset link pointing at the frontend and does not reveal unknown emails', function () {
-    Notification::fake();
     $user = User::factory()->create();
 
     $this->postJson('/api/v1/auth/password/forgot', ['email' => $user->email])->assertOk();
     $this->postJson('/api/v1/auth/password/forgot', ['email' => 'ghost@example.com'])->assertOk();
 
-    Notification::assertSentToTimes($user, ResetPassword::class, 1);
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
-        $url = $notification->toMail($user)->actionUrl;
-
-        return str_starts_with($url, rtrim(config('app.frontend_url'), '/').'/reset-password?')
-            && str_contains($url, 'token=') && str_contains($url, urlencode($user->email));
-    });
+    $sent = app(TemplateMail::class)->sent;
+    expect($sent)->toHaveCount(1)
+        ->and($sent[0]['template'])->toBe('auth.password_reset')
+        ->and($sent[0]['to'])->toBe($user->email);
+    $url = $sent[0]['variables']['reset_url'];
+    expect($url)->toStartWith(rtrim(config('app.frontend_url'), '/').'/reset-password?')
+        ->and($url)->toContain('token=')->toContain(urlencode($user->email));
 });
 
 it('FR-A3 resets the password and revokes every session', function () {
@@ -36,7 +33,8 @@ it('FR-A3 resets the password and revokes every session', function () {
     ])->assertOk();
 
     expect(Hash::check('NewPassword456!', $user->fresh()->password))->toBeTrue()
-        ->and(RefreshToken::whereNull('revoked_at')->count())->toBe(0);
+        ->and(RefreshToken::whereNull('revoked_at')->count())->toBe(0)
+        ->and(collect(app(TemplateMail::class)->sent)->pluck('template')->all())->toBe(['auth.password_changed']);
 });
 
 it('FR-A3 rejects an invalid reset token', function () {
@@ -49,16 +47,14 @@ it('FR-A3 rejects an invalid reset token', function () {
 });
 
 it('FR-A2 verification email links to the frontend, which forwards to the signed API route', function () {
-    Notification::fake();
     $user = User::factory()->unverified()->create();
     $user->sendEmailVerificationNotification();
 
-    Notification::assertSentTo($user, VerifyEmail::class, function ($notification) use ($user) {
-        $url = $notification->toMail($user)->actionUrl;
-
-        return str_starts_with($url, rtrim(config('app.frontend_url'), '/').'/verify-email?')
-            && str_contains($url, 'signature=') && str_contains($url, 'id='.$user->id);
-    });
+    $sent = app(TemplateMail::class)->sent;
+    expect($sent[0]['template'])->toBe('auth.verify_email')->and($sent[0]['to'])->toBe($user->email);
+    $url = $sent[0]['variables']['verify_url'];
+    expect($url)->toStartWith(rtrim(config('app.frontend_url'), '/').'/verify-email?')
+        ->and($url)->toContain('signature=')->toContain('id='.$user->id);
 });
 
 it('FR-A2 verifies the email through the signed API route', function () {
@@ -79,12 +75,11 @@ it('FR-A2 rejects a tampered verification link', function () {
 });
 
 it('FR-A2 lets an authenticated user request a new verification email', function () {
-    Notification::fake();
     $user = User::factory()->unverified()->create(['password' => 'Password123!']);
     $token = loginAs($user)->json('data.access_token');
 
     $this->app['auth']->forgetGuards();
     $this->withToken($token)->postJson('/api/v1/auth/email/resend')->assertOk();
 
-    Notification::assertSentTo($user, VerifyEmail::class);
+    expect(collect(app(TemplateMail::class)->sent)->pluck('template'))->toContain('auth.verify_email');
 });

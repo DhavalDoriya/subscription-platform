@@ -8,6 +8,7 @@ use App\Models\Plan;
 use App\Models\Provider;
 use App\Models\StorefrontPage;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\DB;
 class StorefrontService
 {
     private const PREVIEW_TTL = 3600;
+
+    private const CACHE_SECONDS = 300;
 
     /** @return array<string, mixed> */
     public function draft(Provider $provider): array
@@ -117,10 +120,24 @@ class StorefrontService
         return $payload !== null && $payload['p'] === $provider->id && $payload['exp'] >= time();
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * The public storefront, cached per provider (FR-L2). A draft preview is never cached and never reads the cache. Anything
+     * that changes what the public sees clears the entry (see StorefrontCache); the TTL only bounds what a missed event could cost.
+     *
+     * @return array<string, mixed>
+     */
     public function publicView(Provider $provider, ?string $previewToken): array
     {
-        $preview = $this->previewIsValid($previewToken, $provider);
+        if ($this->previewIsValid($previewToken, $provider)) {
+            return $this->buildPublicView($provider, true);
+        }
+
+        return Cache::remember(StorefrontCache::key($provider->id), self::CACHE_SECONDS, fn () => $this->buildPublicView($provider, false));
+    }
+
+    /** @return array<string, mixed> */
+    private function buildPublicView(Provider $provider, bool $preview): array
+    {
         $available = $provider->status->isOperational();
         $page = $available ? $this->page($provider) : null;
 

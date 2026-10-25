@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\BillingController as AdminBillingController;
+use App\Http\Controllers\Api\V1\Admin\CommissionController as AdminCommissionController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\DunningController as AdminDunningController;
@@ -42,6 +43,7 @@ use App\Http\Controllers\Api\V1\PublicApi\ConfigController;
 use App\Http\Controllers\Api\V1\PublicApi\SlugController;
 use App\Http\Controllers\Api\V1\PublicApi\StorefrontController as PublicStorefrontController;
 use App\Http\Controllers\Api\V1\PublicApi\TenantController;
+use App\Http\Controllers\Api\V1\Reports\ReportController;
 use App\Http\Controllers\Api\V1\Webhooks\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -49,12 +51,13 @@ use Illuminate\Support\Facades\Route;
 // phase by phase: public, customer, provider, admin.
 Route::prefix('v1')->group(function () {
     Route::get('health', HealthController::class);
+    Route::get('health/ready', [HealthController::class, 'ready']);
 
     // Stripe calls these with a signature, not a login; the controller verifies it.
     Route::post('webhooks/stripe', [StripeWebhookController::class, 'platform']);
     Route::post('webhooks/stripe/connect', [StripeWebhookController::class, 'connect']);
 
-    Route::prefix('public')->group(function () {
+    Route::prefix('public')->middleware('throttle:public')->group(function () {
         Route::get('slugs/{slug}/availability', [SlugController::class, 'availability'])->middleware('throttle:60,1');
         Route::get('config', [ConfigController::class, 'show']);
         Route::get('storefront', [PublicStorefrontController::class, 'show'])->middleware('tenant');
@@ -90,6 +93,13 @@ Route::prefix('v1')->group(function () {
             Route::get('invoices/{invoice}/dunning', [ProviderDunningController::class, 'show']);
             Route::post('invoices/{invoice}/retry', [ProviderDunningController::class, 'retry']);
             Route::post('invoices/{invoice}/resolve', [ProviderDunningController::class, 'resolve']);
+            Route::prefix('reports')->controller(ReportController::class)->group(function () {
+                Route::get('revenue', 'revenue');
+                Route::get('churn', 'churn');
+                Route::get('failures', 'failures');
+                Route::get('export', 'export');
+            });
+
             Route::get('payments', [BillingController::class, 'payments']);
             Route::post('payments/{payment}/refund', [PaymentController::class, 'refund']);
 
@@ -181,6 +191,18 @@ Route::prefix('v1')->group(function () {
         Route::get('webhook-events', [WebhookEventController::class, 'index']);
         Route::get('webhook-events/{event}', [WebhookEventController::class, 'show'])->name('admin.webhook-events.show');
         Route::post('webhook-events/{event}/replay', [WebhookEventController::class, 'replay']);
+
+        Route::prefix('reports')->controller(ReportController::class)->group(function () {
+            Route::get('revenue', 'revenue');
+            Route::get('churn', 'churn');
+            Route::get('failures', 'failures');
+            Route::get('export', 'export');
+        });
+
+        Route::get('commission/rules', [AdminCommissionController::class, 'rules']);
+        Route::post('commission/rules', [AdminCommissionController::class, 'store']);
+        Route::delete('commission/rules/{rule}', [AdminCommissionController::class, 'destroy']);
+        Route::get('commission/report', [AdminCommissionController::class, 'report']);
 
         Route::get('plans', [AdminPlanController::class, 'index']);
         Route::post('plans/{plan}/archive', [AdminPlanController::class, 'archive']);

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /** A charge attempt that reached Stripe (one per payment intent). Never hard-deleted. */
@@ -32,6 +33,16 @@ class Payment extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function commission(): HasOne
+    {
+        return $this->hasOne(Commission::class);
+    }
+
+    public function dispute(): HasOne
+    {
+        return $this->hasOne(Dispute::class)->latestOfMany();
     }
 
     public function refunds(): HasMany

@@ -52,6 +52,7 @@ beforeEach(() => {
                     churned_30d: 0,
                     failed_payments_30d: 0,
                     upcoming_renewals_7d: 0,
+                    commission: { rate_percent: '0.00', fee_30d: 0 },
                     dunning: { open_invoices: 0, open_amount: 0, at_risk_mrr: 0, recovered_30d: 0, lost_30d: 0, recovery_rate: null },
                 },
             }),

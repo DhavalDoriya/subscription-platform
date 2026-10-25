@@ -260,7 +260,7 @@ Tasks:
 - [x] **T7.4** Mailer using DB-stored credentials (SMTP/SES/Mailgun), encrypted; test-send endpoint (M). Done: `mail.*` settings (password and API key are secrets), `MailConfigurator` builds the mailer at send time, `POST /admin/mail/test` (502 `mail_test_failed` on refusal). SES and Mailgun need `aws/aws-sdk-php` / `symfony/mailgun-mailer`, not installed.
 - [x] **T7.5** Queued sending, delivery log, resend (S). Done: `DatabaseTemplateMail` queues `SendEmailLog` after commit; statuses queued/sent/failed/skipped (disabled template); resend of failed rows.
 - [x] **T7.6** Admin UI: template list, editor with preview, version history, mail settings, delivery log (L). Done (Vitest only, no Playwright pass yet): admin Email templates (list, editor with server-rendered preview, versions + restore, test send), Email logs (filter, body, resend), Mail section in Settings.
-- [ ] **T7.7** Replace Phase 1 and 6 mail stubs with real template keys (S). Half done: the dunning keys use the real mailer. Auth emails (verify, reset) still use Laravel's default notifications, and nothing calls the provider, customer-billing or admin-alert keys yet.
+- [ ] **T7.7** Replace Phase 1 and 6 mail stubs with real template keys (S). Mostly done: dunning keys, auth keys (`auth.verify_email`, `auth.password_reset`, `auth.password_changed`, `auth.welcome` via `App\Services\Mail\AuthMailer`, hooked in `User`), provider lifecycle keys (approved, rejected, suspended, reactivated in `ProviderLifecycle`), subscription keys (started, canceled, resumed, plan_changed, plus provider new_subscriber and plan_canceled, via `SubscriptionNotifier` from `SubscriptionSync`) and `customer.refund_issued` all send through the template mailer. `customer.receipt` (on `invoice.paid`, once, via `receipt_sent_at`) and `customer.trial_ending` / `customer.upcoming_renewal` (daily `billing:send-reminders`, 3 days ahead, once per date) are wired too. `provider.registration_received` (pending registrations; auto-approved ones get `provider.approved`) and `provider.stripe_onboarding_reminder` (daily `providers:remind-stripe-onboarding`, 3 days after approval, once) are wired. Still unsent: `auth.two_factor_enabled` (no 2FA feature exists) and the admin-alert keys (no trigger yet).
 
 **Exit criteria:** admin edits the "payment failed" template and the next dunning email reflects it; delivery log shows the send in Mailpit.
 
@@ -277,11 +277,13 @@ Tests first:
 - fee applied as `application_fee_percent` on new subscriptions
 
 Tasks:
-- [ ] **T8.1** `commission_rules` (global and per provider, effective-from) and `commissions` (per payment, with snapshot) (M).
-- [ ] **T8.2** Rate resolver service and application to subscriptions (M).
-- [ ] **T8.3** Record commission on `invoice.paid`; adjust on refund and dispute (M).
-- [ ] **T8.4** Admin UI: default rate, per-provider override, commission report (M).
-- [ ] **T8.5** Provider UI: gross, fee and net on transactions and totals (S).
+- [x] **T8.1** `commission_rules` (global and per provider, effective-from) and `commissions` (per payment, with snapshot) (M). Built: `commission_rules` (provider_id null = global, `effective_from`, history kept) and `commissions` (one per successful payment, with the rate snapshot).
+- [x] **T8.2** Rate resolver service and application to subscriptions (M). Built: `CommissionResolver` (provider rule beats global, latest started rule wins, 0 when none); checkout stores `subscriptions.application_fee_percent` and sends it as `application_fee_percent`. The old `commission.default_percent` setting is gone.
+- [x] **T8.3** Record commission on `invoice.paid`; adjust on refund and dispute (M). Built for payments and refunds: `CommissionRecorder` records on `payment_intent.succeeded`, refunds (webhook and API) return the fee pro rata and ask Stripe to refund the application fee. Disputes built: `disputes` table, `charge.dispute.created/updated/closed` handler; a lost dispute returns the whole fee in our records and asks Stripe to refund the application fee (`refundApplicationFeeForCharge`, verified against the fake gateway only), and the provider payments page flags the dispute.
+- [x] **T8.4** Admin UI: default rate, per-provider override, commission report (M). Built: admin Commission rates and Commission report pages (`/admin/commission/*`).
+- [x] **T8.5** Provider UI: gross, fee and net on transactions and totals (S). Built: provider Payments page shows platform fee and what the provider receives; overview shows the current rate and fees over 30 days.
+
+**Deviation:** FR-CM1 says percent and/or fixed; Stripe subscriptions only accept `application_fee_percent`, so v1 is percent only (fixed fees need per-invoice fees and are deferred with FR-CM5 to FR-CM9).
 
 **Exit criteria:** a payment shows gross, fee and net consistently in Stripe, the database, and both UIs.
 
@@ -292,15 +294,15 @@ Tasks:
 **Goal:** safe to put in front of real users. Covers FR-AD13, FR-L2, FR-L3, section 7.
 
 Tasks:
-- [ ] **T9.1** Reports and CSV export: revenue, churn, failed payments, commission (M).
-- [ ] **T9.2** Security review: authz sweep of every route, CORS, headers/CSP, rate limits, secrets handling, dependency audit (M).
-- [ ] **T9.3** Performance: indexes, N+1 checks, cache storefront and settings (S).
-- [ ] **T9.4** Observability: Sentry, health endpoint, alerts for webhook failures and queue backlog (S).
-- [ ] **T9.5** Backups and restore drill (S).
-- [ ] **T9.6** Full Playwright sweep (admin, provider, customer, storefront) with console and network error checks (M).
-- [ ] **T9.7** Hosting decision, wildcard DNS/SSL, production compose or deploy pipeline; seed the first admin on the target environment as a separate step (M).
-- [ ] **T9.8** Re-run the sweep against the real URL (CORS and env checks) (S).
-- [ ] **T9.9** Docs: API (Scramble), runbook, onboarding guide (S).
+- [x] **T9.1** Reports and CSV export: revenue, churn, failed payments, commission (M). Built: `ReportService` and `/admin|provider/reports/{revenue,churn,failures,export}` with CSV export (formula-safe), Reports pages for both areas.
+- [x] **T9.2** Security review: authz sweep of every route, CORS, headers/CSP, rate limits, secrets handling, dependency audit (M). Done: authz sweep test over every admin/provider/customer route (guest 401, wrong role 403; role middleware now runs before route-model binding), security headers + nonce CSP + HSTS, CORS closed (Laravel's default `*` removed), rate limit on public endpoints, `composer audit` and `npm audit` clean. Not covered: a manual pen test.
+- [x] **T9.3** Performance: indexes, N+1 checks, cache storefront and settings (S). Partly done: indexes for scheduler/alert/report queries, N+1 query-count tests on the payments list and commission report, settings were already cached. The public storefront view is cached per provider (5 min TTL) and cleared by model events on Provider, Plan, Price, StorefrontPage and PageBlock, so a pause, plan change or publish shows at once; previews bypass the cache.
+- [x] **T9.4** Observability: Sentry, health endpoint, alerts for webhook failures and queue backlog (S). Partly done: `/api/v1/health/ready` (database, cache), `platform:check-alerts` emails admins on webhook failures and a high payment failure rate, admin provider-pending alert, Horizon for queue backlog. Sentry is installed and wired (no DSN means off, no personal data, 4xx business errors not reported); set `SENTRY_LARAVEL_DSN` to use it.
+- [ ] **T9.5** Backups and restore drill (S). Scripted, not drilled: `docker/ops/backup.sh` and `restore-drill.sh` (need a Postgres to run), procedure in docs/RUNBOOK.md.
+- [x] **T9.6** Full Playwright sweep (admin, provider, customer, storefront) with console and network error checks (M). Done: 16 Playwright specs pass with the CSP on, covering admin, provider, customer, storefront, email screens, commission and reports. The sweep found and fixed an unreachable admin sidebar item (sidebar did not scroll) and the CSP blocking uploaded images from another origin.
+- [ ] **T9.7** Hosting decision, wildcard DNS/SSL, production compose or deploy pipeline; seed the first admin on the target environment as a separate step (M). Needs a decision: hosting provider. Procedure (wildcard DNS and certificate, first admin as a separate step, env) is in docs/RUNBOOK.md; no production compose or pipeline is written because it depends on the host.
+- [ ] **T9.8** Re-run the sweep against the real URL (CORS and env checks) (S). Blocked on T9.7: needs the deployed URL.
+- [x] **T9.9** Docs: API (Scramble), runbook, onboarding guide (S). Done: docs/RUNBOOK.md, docs/openapi.json (Scramble export), `/docs/api` closed in production unless `API_DOCS=true`. Provider guide: docs/PROVIDER-GUIDE.md.
 
 **Exit criteria:** all PRD P0 requirements covered by passing tests; sweep passes on the deployed URL.
 
@@ -312,3 +314,7 @@ Tasks:
 - Stripe calls only through the client wrapper, with idempotency keys.
 - Audit log entries for admin and provider mutations.
 - Update `docs/PRD.md` if a decision changes, and tick tasks here when done.
+
+
+## Stripe account type (temporary)
+The platform's current Stripe test account is registered in India, which Stripe refuses Express accounts for. `STRIPE_ACCOUNT_TYPE=standard` (`config('services.stripe.account_type')`, default `express`) makes new providers Standard accounts and sends them to dashboard.stripe.com instead of an Express login link. Local `.env` uses `standard`; tests pin `express`. Switch back once the platform uses a Stripe account in an Express-eligible country, and re-run the real walkthrough.

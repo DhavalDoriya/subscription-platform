@@ -14,7 +14,7 @@ export function AdminLayout() {
 
     return (
         <div className="grid min-h-screen lg:grid-cols-[16rem_minmax(0,1fr)]">
-            <aside className="bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:h-screen">
+            <aside className="bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
                 <div className="px-6 py-6 text-lg font-semibold text-white">Billing Platform</div>
                 <nav aria-label="Admin" className="flex flex-wrap gap-x-6 gap-y-2 px-3 pb-4 lg:block lg:space-y-6">
                     {adminNav.map((group) => {

@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Models\User;
 use App\Services\Auth\RefreshTokenService;
+use App\Services\Mail\AuthMailer;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Password;
@@ -22,13 +23,14 @@ class PasswordController extends Controller
         return ApiResponse::success(['message' => __('api.auth.reset_link_sent')]);
     }
 
-    public function reset(ResetPasswordRequest $request, RefreshTokenService $refreshTokens): JsonResponse
+    public function reset(ResetPasswordRequest $request, RefreshTokenService $refreshTokens, AuthMailer $mails): JsonResponse
     {
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password) use ($refreshTokens) {
+            function (User $user, string $password) use ($refreshTokens, $mails) {
                 $user->forceFill(['password' => $password])->save();
                 $refreshTokens->revokeAllFor($user);
+                $mails->passwordChanged($user);
             },
         );
 

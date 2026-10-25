@@ -128,6 +128,7 @@ return [
     // Requests per minute per IP on register, login, refresh and password reset. Raise it only for e2e runs (.env.e2e).
     'rate_limits' => [
         'auth' => (int) env('AUTH_RATE_LIMIT', 20),
+        'public' => (int) env('PUBLIC_RATE_LIMIT', 120), // unauthenticated reads (config, storefront, tenant) per IP
     ],
 
     'refresh' => [

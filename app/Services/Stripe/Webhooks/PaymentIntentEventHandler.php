@@ -6,13 +6,14 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Provider;
 use App\Models\ProviderCustomer;
+use App\Services\Commission\CommissionRecorder;
 use App\Services\Dunning\DunningService;
 use App\Support\Tenancy\TenantContext;
 
 /** payment_intent.succeeded / payment_failed: one local payment per payment intent, with the reason when it failed. */
 class PaymentIntentEventHandler extends ConnectEventHandler
 {
-    public function __construct(TenantContext $tenancy, private DunningService $dunning)
+    public function __construct(TenantContext $tenancy, private DunningService $dunning, private CommissionRecorder $commissions)
     {
         parent::__construct($tenancy);
     }
@@ -48,6 +49,10 @@ class PaymentIntentEventHandler extends ConnectEventHandler
             'paid_at' => $succeeded ? now()->setTimestamp($at) : null,
             'stripe_event_at' => $at,
         ])->save();
+
+        if ($succeeded) {
+            $this->commissions->record($payment);
+        }
 
         if ($invoice && ! $succeeded) {
             // The invoice event may have got here first without knowing why the card failed.

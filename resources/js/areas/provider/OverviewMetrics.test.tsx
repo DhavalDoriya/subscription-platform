@@ -23,6 +23,7 @@ describe('FR-PD1 provider overview metrics', () => {
                         churned_30d: 3,
                         failed_payments_30d: 4,
                         upcoming_renewals_7d: 21,
+                        commission: { rate_percent: '10.00', fee_30d: 4500 },
                         dunning: { open_invoices: 3, open_amount: 5700, at_risk_mrr: 4500, recovered_30d: 2, lost_30d: 1, recovery_rate: 67 },
                     },
                 }),
@@ -38,6 +39,8 @@ describe('FR-PD1 provider overview metrics', () => {
             ['Churned in 30 days', '3'],
             ['Failed payments (30 days)', '4'],
             ['Renewals in 7 days', '21'],
+            ['Platform fee rate', '10.00%'],
+            ['Platform fees (30 days)', '$45.00'],
         ])
             expect(screen.getByText(label).parentElement).toHaveTextContent(value);
     });
@@ -54,6 +57,7 @@ describe('FR-PD1 provider overview metrics', () => {
                         churned_30d: 0,
                         failed_payments_30d: 0,
                         upcoming_renewals_7d: 0,
+                        commission: { rate_percent: '0.00', fee_30d: 0 },
                         dunning: { open_invoices: 3, open_amount: 5700, at_risk_mrr: 4500, recovered_30d: 2, lost_30d: 1, recovery_rate: 67 },
                     },
                 }),
@@ -83,6 +87,7 @@ describe('FR-PD1 provider overview metrics', () => {
                         churned_30d: 0,
                         failed_payments_30d: 0,
                         upcoming_renewals_7d: 0,
+                        commission: { rate_percent: '0.00', fee_30d: 0 },
                         dunning: { open_invoices: 0, open_amount: 0, at_risk_mrr: 0, recovered_30d: 0, lost_30d: 0, recovery_rate: null },
                     },
                 }),
